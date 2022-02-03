@@ -5,10 +5,12 @@ import TreeNode from '@/models/nodes';
 import PassiveTreeRenderer from './components/PassiveTreeRenderer';
 import AppBar from './AppBar';
 import { useWorker } from './utils';
+import Connector from './models/connector';
+import TreeGroup from './models/groups';
 
 const App: React.FC = () => {
-  // const [connectors, setConnectors] = React.useState<Connector[]>([]);
-  // const [groups, setGroups] = React.useState<TreeGroup[]>([]);
+  const [connectors, setConnectors] = React.useState<Connector[]>([]);
+  const [groups, setGroups] = React.useState<TreeGroup[]>([]);
   const [nodes, setNodes] = React.useState<TreeNode[]>([]);
 
   const [isAppReady, setAppReady] = React.useState<boolean>(false);
@@ -18,12 +20,12 @@ const App: React.FC = () => {
   React.useEffect(() => {
     (async () => {
       await workerApi.computeTree();
-      // const dbConnectors = await db.connectors.toArray();
+      const dbConnectors = await db.connectors.toArray();
       const dbNodes = await db.nodes.toArray();
-      // const dbGroups = await db.groups.toArray();
-      // setConnectors(dbConnectors);
+      const dbGroups = await db.groups.toArray();
+      setConnectors(dbConnectors);
       setNodes(dbNodes);
-      // setGroups(dbGroups);
+      setGroups(dbGroups);
       setAppReady(true);
     })();
   }, []);
@@ -35,7 +37,9 @@ const App: React.FC = () => {
           <AppBar />
         </div>
       )}
-      <div className="flex-auto bg-gray-800">{isAppReady && <PassiveTreeRenderer nodes={nodes} />}</div>
+      <div className="flex-auto bg-gray-800">
+        {isAppReady && <PassiveTreeRenderer connectors={connectors} nodes={nodes} groups={groups} />}
+      </div>
     </div>
   );
 };

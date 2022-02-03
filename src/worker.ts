@@ -18,7 +18,6 @@ export class TreeWorker {
   connectors: Connector[] = [];
 
   async computeTree() {
-    console.log('here');
     this.loadFromObj(jsonTree as PassiveTree);
     await db.nodes.clear();
     await db.connectors.clear();
@@ -69,34 +68,32 @@ export class TreeWorker {
 
     // Nodes
     filteredNodes.forEach((node, index, arr) => {
-      if (
-        node.skill === undefined ||
-        !node.name ||
-        !node.in ||
-        !node.out ||
-        node.orbit === undefined ||
-        node.orbitIndex === undefined
-      )
-        return;
+      if (!node.in || !node.out || node.orbit === undefined || node.orbitIndex === undefined) return;
       // skill == null ? indexeddb
       const group = data.groups[node.group.toString()];
       const extra: any = {};
       node.path = [];
       node.pathDistance = 0;
-      if (node.name === 'RANGER') {
+      if (node.skill === 29045) {
         node.isStartPoint = true;
         node.allocated = 1;
+        node.hidden = true;
       }
       extra.angle = (orbitAngles[node.orbit][node.orbitIndex] * Math.PI) / 180;
       extra.posX = group.x - orbitRadii[node.orbit] * Math.sin(-extra.angle);
       extra.posY = group.y - orbitRadii[node.orbit] * Math.cos(-extra.angle);
+
+      if (node.group === 0) {
+        extra.posX = 0;
+        extra.posY = 0;
+      }
       arr[index] = { ...node, state: State.DEFAULT, extra };
     });
 
     // Connectors
     const connectors: Connector[] = [];
     filteredNodes.forEach((node) => {
-      node.in?.forEach((nodeStr) => {
+      node.out?.forEach((nodeStr) => {
         const otherNode = filteredNodes.find((n) => n.skill === parseInt(nodeStr, 10));
         if (!otherNode) return;
         if (node.ascendancyName !== otherNode.ascendancyName) return;
@@ -111,10 +108,10 @@ export class TreeWorker {
         const type = node.group === otherNode.group && node.orbit === otherNode.orbit ? 'circle' : 'line';
         const connector = {
           id: `${node.skill}/${otherNode.skill}`,
-          startNode: otherNode.skill,
-          endNode: node.skill,
-          state: State.DEFAULT,
-          type
+          endNode: otherNode.skill,
+          startNode: node.skill,
+          type,
+          state: node.allocated ? (otherNode.allocated ? State.ACTIVE : State.INTERMEDIATE) : State.DEFAULT
         };
         connectors.push(connector);
       });
@@ -128,15 +125,6 @@ export class TreeWorker {
         if (index === -1) return;
         n.allocated = 1;
         n.state = State.ACTIVE;
-        n.hidden = true;
-        connectors
-          .filter((c) => c.startNode === n.skill)
-          .forEach((c1) => {
-            const cIndex = connectors.findIndex((c2) => c1.id === c2.id);
-            if (cIndex === -1) return;
-            c1.hidden = true;
-            connectors[cIndex] = c1;
-          });
         filteredNodes
           .filter((n1) => n.out.includes(n1.skill.toString()))
           .forEach((n1) => {
@@ -150,8 +138,9 @@ export class TreeWorker {
       });
 
     const groups = Object.values(data.groups);
-
-    return { filteredNodes, connectors, groups };
+    this.nodes = filteredNodes;
+    this.groups = groups;
+    this.connectors = connectors;
   }
 }
 

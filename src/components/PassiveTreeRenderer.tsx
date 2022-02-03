@@ -2,7 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import TreeNode from '@/models/nodes';
 import { State } from '@/models/misc';
 import { useWorker } from '@/utils';
-import { Application, Sprite } from 'pixi.js';
+import { Application, Graphics, SCALE_MODES, settings, Sprite } from 'pixi.js';
+import { Viewport } from 'pixi-viewport';
+import { useTextureManager } from '@/data/textureManager';
+import Connector from '@/models/connector';
+import { orbitRadii } from '@/constants';
+import TreeGroup from '@/models/groups';
 /**
  * TODO:
  * - Node / Connector selected
@@ -17,17 +22,20 @@ import { Application, Sprite } from 'pixi.js';
 // };
 
 interface Props {
-  // connectors: Connector[];
+  connectors: Connector[];
   nodes: TreeNode[];
-  // groups: TreeGroup[];
+  groups: TreeGroup[];
 }
 
-const PassiveTreeRenderer: React.FC<Props> = ({ /* connectors: baseConnectors, */ nodes: baseNodes /* groups */ }) => {
-  const domElement = useRef<HTMLCanvasElement>(null);
-  // TODO: memoize
+const PassiveTreeRenderer: React.FC<Props> = ({ connectors: baseConnectors, nodes: baseNodes, groups }) => {
+  const domElement = useRef<HTMLDivElement>(null);
+  const [appInstance, setAppInstance] = React.useState<Application>();
+  const [viewport, setViewport] = React.useState<Viewport>();
+
+  const textureManager = useTextureManager();
 
   const nodes = React.useRef<TreeNode[]>(baseNodes);
-  // const connectors = React.useRef<Connector[]>(baseConnectors);
+  const connectors = React.useRef<Connector[]>(baseConnectors);
 
   const allocatedNodes = React.useRef<TreeNode[]>([]);
 
@@ -35,19 +43,17 @@ const PassiveTreeRenderer: React.FC<Props> = ({ /* connectors: baseConnectors, *
   const { workerApi } = useWorker();
 
   // == Assets Fetching
-  // function getNodeSpritePath(node: TreeNode) {
-  //   const stateToString = (state?: State, canAllocate?: boolean) => {
-  //     if (state === undefined) return 'Unallocated';
-  //     if (state === State.INTERMEDIATE) return 'Intermediate';
-  //     if (state === State.ACTIVE) return 'Active';
-  //     if (canAllocate) return 'Intermediate';
-  //     return 'Unallocated';
-  //   };
-  //   if (node.isNotable) return `/assets/icons/NotableFrame${stateToString(node.state)}.png`;
-  //   if (node.isKeystone) return `/assets/icons/KeystoneFrame${stateToString(node.state)}.png`;
-  //   if (node.isJewelSocket) return `/assets/icons/JewelFrame${stateToString(node.state)}.png`;
-  //   return `/assets/icons/Skill_Frame_${stateToString(node.state, node.canAllocate)}.png`;
-  // }
+  function getNodeTexture(node: TreeNode) {
+    const stateToString = (state?: State, canAllocate?: boolean) => {
+      if (state === undefined) return 'unallocated';
+      if (state === State.INTERMEDIATE) return 'highlighted';
+      if (state === State.ACTIVE) return 'active';
+      if (canAllocate) return 'intermediate';
+      return 'unallocated';
+    };
+    if (node.isNotable) return textureManager.getTexture(`skill-notable-${stateToString(node.state)}`);
+    return textureManager.getTexture(`skill-frame-${stateToString(node.state, node.canAllocate)}`);
+  }
 
   // function getGroupBackgroundPath(groupIndex: number) {
   //   return `/assets/icons/Group_Background_${groupIndex}.png`;
@@ -157,133 +163,102 @@ const PassiveTreeRenderer: React.FC<Props> = ({ /* connectors: baseConnectors, *
   //   });
   // }
 
-  // function getConnectorStrokeColor(connector: Connector) {
-  //   if (connector.state === State.ACTIVE) return '#EAE3D5';
-  //   if (connector.state === State.INTERMEDIATE) return '#7A6E62';
-  //   return '#3D3A2E';
-  // }
+  function getConnectorStrokeColor(connector: Connector) {
+    if (connector.state === State.ACTIVE) return 0xeae3d5;
+    if (connector.state === State.INTERMEDIATE) return 0x7a6e62;
+    return 0x3d3a2e;
+  }
 
   // // == Canvas rendering
 
-  // function addNodesToCanvas(nodes: TreeNode[]) {
-  //   if (!canvasInstance) return;
-  //   nodes.forEach((node) => {
-  //     if (node.hidden) return;
-  //     fabric.Image.fromURL(
-  //       getNodeSpritePath(node),
-  //       (oImg) => {
-  //         oImg.on('mousemove', () => {
-  //           canvasInstance.fire('node:hovered:start', { node: node.skill, target: oImg });
-  //         });
-  //         oImg.on('mouseout', () => {
-  //           canvasInstance.fire('node:hovered:end', { node: node.skill, target: oImg });
-  //         });
-  //         oImg.on('mouseup', () => {
-  //           canvasInstance.fire('node:pressed', { node: node.skill, target: oImg });
-  //           canvasInstance.requestRenderAll();
-  //         });
-  //         canvasInstance.add(oImg);
-  //         canvasInstance.bringToFront(oImg);
-  //       },
-  //       {
-  //         name: `Node{${node.skill}}`,
-  //         left: node.extra?.posX,
-  //         top: node.extra?.posY,
-  //         originX: 'center',
-  //         originY: 'center',
-  //         scaleX: 3,
-  //         scaleY: 3,
-  //         selectable: false
-  //       }
-  //     );
-  //     // DEBUG
-  //     // if (node.canAllocate) {
-  //     //   canvasInstance.add(
-  //     //     new fabric.Circle({
-  //     //       radius: 10,
-  //     //       left: node.extra.posX,
-  //     //       top: node.extra.posY,
-  //     //       originX: 'center',
-  //     //       originY: 'center',
-  //     //       scaleX: 3,
-  //     //       scaleY: 3,
-  //     //       selectable: false,
-  //     //       stroke: '#ff0000',
-  //     //       strokeWidth: 5
-  //     //     })
-  //     //   );
-  //     // }
-  //   });
-  // }
+  function addNodesToViewport() {
+    if (!appInstance) return;
+    nodes.current.forEach((node) => {
+      if (node.hidden) return;
+      const sprite = new Sprite(getNodeTexture(node));
+      sprite.anchor.set(0.5, 0.5);
+      sprite.scale.set(2, 2);
+      sprite.x = node.extra?.posX;
+      sprite.y = node.extra?.posY;
+      sprite.interactive = true;
 
-  // function addConnectorsToCanvas(connectors: Connector[], nodes: TreeNode[], groups: TreeGroup[]) {
-  //   if (!canvasInstance) return;
-  //   connectors.forEach((c) => {
-  //     if (c.hidden) return;
-  //     const startNode = nodes.find((x) => x.skill === c.startNode);
-  //     const endNode = nodes.find((x) => x.skill === c.endNode);
-  //     if (!startNode || !endNode) return;
-  //     if (
-  //       startNode.group === endNode.group &&
-  //       startNode.orbit === endNode.orbit &&
-  //       startNode.group &&
-  //       startNode.orbit
-  //     ) {
-  //       const group = groups.find((x) => x.nodes.includes(startNode.skill.toString()));
-  //       if (!group) return;
-  //       if (
-  //         (startNode.extra.angle - endNode.extra.angle > 0 && startNode.extra.angle - endNode.extra.angle < Math.PI) ||
-  //         startNode.extra.angle - endNode.extra.angle < -Math.PI
-  //       ) {
-  //         const circ = new fabric.Circle({
-  //           name: `Connector{${startNode.skill}/${endNode.skill}}`,
-  //           radius: orbitRadii[startNode.orbit],
-  //           left: group.x,
-  //           top: group.y,
-  //           startAngle: endNode.extra.angle - Math.PI / 2,
-  //           endAngle: startNode.extra.angle - Math.PI / 2,
-  //           stroke: getConnectorStrokeColor(c),
-  //           strokeWidth: 10,
-  //           angle: 0,
-  //           fill: '',
-  //           originX: 'center',
-  //           originY: 'center',
-  //           selectable: false
-  //         });
-  //         canvasInstance.add(circ);
-  //       } else {
-  //         canvasInstance.add(
-  //           new fabric.Circle({
-  //             name: `Connector{${startNode.skill}/${endNode.skill}}`,
-  //             radius: orbitRadii[startNode.orbit],
-  //             left: group.x,
-  //             top: group.y,
-  //             startAngle: startNode.extra.angle - Math.PI / 2,
-  //             endAngle: endNode.extra.angle - Math.PI / 2,
-  //             stroke: getConnectorStrokeColor(c),
-  //             strokeWidth: 10,
-  //             angle: 0,
-  //             fill: '',
-  //             originX: 'center',
-  //             originY: 'center',
-  //             selectable: false
-  //           })
-  //         );
-  //       }
-  //       return;
-  //     }
-  //     canvasInstance.add(
-  //       new fabric.Line([startNode.extra.posX, startNode.extra.posY, endNode.extra.posX, endNode.extra.posY], {
-  //         name: `Connector{${startNode.skill}/${endNode.skill}}`,
-  //         originY: 'center',
-  //         originX: 'center',
-  //         stroke: getConnectorStrokeColor(c),
-  //         strokeWidth: 10,
-  //         selectable: false
-  //       })
-  //     );
-  //   });
-  // }
+      sprite.on('mouseover', () => {
+        if (node.allocated) return;
+        // Todo handle hovers better
+        node.state = State.INTERMEDIATE;
+        sprite.texture = getNodeTexture(node);
+      });
+
+      sprite.on('mouseout', () => {
+        if (node.allocated) return;
+        node.state = State.DEFAULT;
+        sprite.texture = getNodeTexture(node);
+      });
+
+      viewport?.addChild(sprite);
+    });
+  }
+
+  function addConnectorsToViewport() {
+    if (!appInstance || !viewport) return;
+    connectors.current.forEach((c) => {
+      if (c.hidden) return;
+      const startNode = nodes.current.find((x) => x.skill === c.startNode);
+      const endNode = nodes.current.find((x) => x.skill === c.endNode);
+      if (!startNode || !endNode) return;
+      if (
+        startNode.group === endNode.group &&
+        startNode.orbit === endNode.orbit &&
+        startNode.group &&
+        startNode.orbit
+      ) {
+        const group = groups.find((x) => x.nodes.includes(startNode.skill.toString()));
+        if (!group) return;
+        if (
+          (startNode.extra.angle - endNode.extra.angle > 0 && startNode.extra.angle - endNode.extra.angle < Math.PI) ||
+          startNode.extra.angle - endNode.extra.angle < -Math.PI
+        ) {
+          const arc = new Graphics();
+          arc.lineStyle({
+            color: getConnectorStrokeColor(c),
+            width: 10
+          });
+          arc.arc(
+            group.x,
+            group.y,
+            orbitRadii[startNode.orbit],
+            endNode.extra.angle - Math.PI / 2,
+            startNode.extra.angle - Math.PI / 2
+          );
+          viewport.addChild(arc);
+        } else {
+          const arc = new Graphics();
+          arc.lineStyle({
+            color: getConnectorStrokeColor(c),
+            width: 10
+          });
+          arc.arc(
+            group.x,
+            group.y,
+            orbitRadii[startNode.orbit],
+            startNode.extra.angle - Math.PI / 2,
+            endNode.extra.angle - Math.PI / 2
+          );
+          viewport.addChild(arc);
+        }
+        return;
+      }
+
+      const graphics = new Graphics();
+      graphics.lineStyle({
+        color: getConnectorStrokeColor(c),
+        width: 10
+      });
+      graphics.moveTo(startNode.extra.posX, startNode.extra.posY);
+      graphics.lineTo(endNode.extra.posX, endNode.extra.posY);
+      viewport.addChild(graphics);
+    });
+  }
 
   // function addGroupOrbitToCanvas() {
   //   if (!canvasInstance) return;
@@ -367,6 +342,7 @@ const PassiveTreeRenderer: React.FC<Props> = ({ /* connectors: baseConnectors, *
 
   function setupCanvas() {
     if (!domElement.current) return;
+    settings.SCALE_MODE = SCALE_MODES.NEAREST;
     // const canvas = new fabric.Canvas(domElement.current, {
     //   width: domElement.current.parentElement?.clientWidth,
     //   height: domElement.current.parentElement?.clientHeight,
@@ -391,9 +367,23 @@ const PassiveTreeRenderer: React.FC<Props> = ({ /* connectors: baseConnectors, *
 
     domElement.current.appendChild(app.view);
 
-    const sprite = Sprite.from('/assets/icons/Skill_Frame_Unallocated.png');
+    textureManager.registerTexture('skill-frame-unallocated', 'assets/icons/Skill_Frame_Unallocated.png');
+    textureManager.registerTexture('skill-frame-highlighted', 'assets/icons/Skill_Frame_Intermediate.png');
+    textureManager.registerTexture('skill-frame-active', 'assets/icons/Skill_Frame_Active.png');
+    textureManager.registerTexture('skill-notable-unallocated', 'assets/icons/NotableFrameUnallocated.png');
+    textureManager.registerTexture('skill-notable-highlighted', 'assets/icons/NotableFrameIntermediate.png');
+    textureManager.registerTexture('skill-notable-active', 'assets/icons/NotableFrameActive.png');
 
-    app.stage.addChild(sprite);
+    const appViewport = new Viewport({
+      worldWidth: 8000,
+      worldHeight: 8000
+    });
+    appViewport.clampZoom({ minScale: 0.25, maxScale: 0.5 });
+
+    appViewport.wheel({ smooth: 20 }).drag();
+    appViewport.interactive = true;
+    appViewport.interactiveChildren = true;
+    app.stage.addChild(appViewport);
 
     // let mouseDown = false;
     // let isDragging = false;
@@ -510,46 +500,44 @@ const PassiveTreeRenderer: React.FC<Props> = ({ /* connectors: baseConnectors, *
     // });
 
     // setCanvasInstance(canvas);
+    setViewport(appViewport);
+    setAppInstance(app);
 
     // Cleanup function
     return () => {
-      app.destroy();
+      app.destroy(true, true);
     };
   }
 
-  // async function buildAllNodesPaths(allocated: TreeNode[]) {
-  //   nodes.current.forEach((n, i, a) => {
-  //     n.path = [];
-  //     n.pathDistance = n.allocated ? 0 : 1000;
-  //     a[i] = n;
-  //   });
+  async function buildAllNodesPaths(allocated: TreeNode[]) {
+    nodes.current.forEach((n, i, a) => {
+      n.path = [];
+      n.pathDistance = n.allocated ? 0 : 1000;
+      a[i] = n;
+    });
 
-  //   const results = await Promise.all(
-  //     allocated.map((n) => {
-  //       return workerApi.BFS(n, nodes.current);
-  //     })
-  //   );
-  //   results.forEach((r) => {
-  //     const index = nodes.current.findIndex((x) => x.skill === r.node.skill);
-  //     nodes.current = r.nodes;
-  //     nodes.current[index] = r.node;
-  //   });
-  // }
+    const results = await Promise.all(
+      allocated.map((n) => {
+        return workerApi.BFS(n, nodes.current);
+      })
+    );
+    results.forEach((r) => {
+      const index = nodes.current.findIndex((x) => x.skill === r.node.skill);
+      nodes.current = r.nodes;
+      nodes.current[index] = r.node;
+    });
+  }
 
   useEffect(() => {
     if (!domElement.current || !isReady) return;
     return setupCanvas();
   }, [domElement.current, isReady]);
 
-  // useEffect(() => {
-  //   (() => {
-  //     if (!canvasInstance) return;
-  //     canvasInstance.forEachObject((o) => canvasInstance.remove(o));
-  //     addGroupOrbitToCanvas();
-  //     addConnectorsToCanvas(connectors.current, nodes.current, groups);
-  //     addNodesToCanvas(nodes.current);
-  //   })();
-  // }, [canvasInstance]);
+  useEffect(() => {
+    if (!appInstance || !viewport) return;
+    addConnectorsToViewport();
+    addNodesToViewport();
+  }, [appInstance, viewport]);
 
   useEffect(() => {
     (async () => {
@@ -560,11 +548,7 @@ const PassiveTreeRenderer: React.FC<Props> = ({ /* connectors: baseConnectors, *
     })();
   }, []);
 
-  return (
-    <div className="h-full w-full atlas">
-      <canvas ref={domElement} />
-    </div>
-  );
+  return <div className="h-full w-full atlas" ref={domElement} />;
 };
 
 export default PassiveTreeRenderer;
