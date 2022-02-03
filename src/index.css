@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* For AppBar */
+.draggable {
+    -webkit-user-select: none;
+    -webkit-app-region: drag;
+  }
+
+.undraggable {
+    -webkit-app-region: no-drag;
+  }
+  
+
+svg,
+canvas {
+  position:relative;
+  z-index: 0;
+}
+
+.atlas {
+  background-color: #080C11;
+}
