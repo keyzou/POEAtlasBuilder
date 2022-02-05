@@ -1,37 +1,39 @@
-# Vite + React + Typescript + Electron - Starter
+<h1 align="center">Welcome to POE Atlas Builder 👋</h1>
+<p>
+  <a href="https://github.com/keyzou/POEAtlasBuilder#readme" target="_blank">
+    <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
+  </a>
+  <a href="https://github.com/keyzou/POEAtlasBuilder/graphs/commit-activity" target="_blank">
+    <img alt="Maintenance" src="https://img.shields.io/badge/Maintained%3F-yes-green.svg" />
+  </a>
+  <a href="https://github.com/keyzou/POEAtlasBuilder/blob/master/LICENSE" target="_blank">
+    <img alt="License: Apache--2.0" src="https://img.shields.io/github/license/keyzou/POE Atlas Builder" />
+  </a>
+</p>
 
-![Vite + React + Typescript + Tailwind + Electron Starter](Screenshot.jpg)
+> Build and plan your Path of Exile Atlas tree !
 
-> It is a simple starter tempalte without unnecessary packages.
+### 🏠 [Homepage](https://github.com/keyzou/POEAtlasBuilder)
 
-This very simple Starter template, utilizes [Vite](https://github.com/vitejs/vite), [Tailwind](https://tailwindcss.com/), [React](https://reactjs.org/), [Typescript](https://www.typescriptlang.org/) and [Electron](https://electronjs.org/).
+## Install
 
-By default, the React framework is used for the interface, but you can easily use any other framework such as Vue, Preact, Angular, Svelte or anything else.
+Download the application and run it ! Installation is one-click and the app will auto-update !
 
-> Vite is framework agnostic
+## Author
 
-## Installation
+👤 **Keyzou**
 
-Clone this repo and install all dependencies  
-`yarn` or `npm install`
+- Github: [@keyzou](https://github.com/keyzou)
 
-## Development
+## Show your support
 
-`yarn dev` or `npm run dev`
+Give a ⭐️ if this project helped you!
 
-## Build
+## 📝 License
 
-`yarn build` or `npm run build`
+Copyright © 2022 [Keyzou](https://github.com/keyzou).<br />
+This project is [Apache--2.0](https://github.com/keyzou/POEAtlasBuilder/blob/master/LICENSE) licensed.
 
-## Publish
+---
 
-`yarn dist` or `npm run dist`
-
-## More advanced templates  
-
-If you are looking for more advanced templates than this, please go to on eof the following links (these are some other links out of the **[awesome-vite](https://github.com/vitejs/awesome-vite)** repo) or you can help me make this template better 🙂  
-
-Links: 
-- [vite-react-electron](https://github.com/caoxiemeihao/vite-react-electron)
-- [electron-vite-react](https://github.com/twstyled/electron-vite-react)
-- [vite-electron-esbuild-starter](https://github.com/jctaoo/vite-electron-esbuild-starter)
+_This README was generated with ❤️ by [readme-md-generator](https://github.com/kefranabg/readme-md-generator)_

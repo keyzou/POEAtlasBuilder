@@ -18,7 +18,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/keyzou/poe-atlas-builder.git"
+    "url": "https://github.com/keyzou/POEAtlasBuilder.git"
   },
   "productName": "POE Atlas Builder",
   "scripts": {
