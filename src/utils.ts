@@ -1,29 +1,23 @@
 import { releaseProxy, wrap } from 'comlink';
-import { useEffect, useMemo } from 'react';
+import { RefCallback, useCallback, useEffect, useMemo, useState } from 'react';
+/* eslint-disable import/no-unresolved */
+// @ts-ignore
 
-function makeWorkerApiAndCleanup() {
-  const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
-  const workerApi = wrap<import('./worker').TreeWorker>(worker);
-  const cleanup = () => {
-    workerApi[releaseProxy]();
-    worker.terminate();
-  };
+export function updateObj<T>(oldObj: T, newObj: Partial<T>) {
+  Object.entries(newObj).forEach(([key, value]) => {
+    if (value === undefined) return;
+    oldObj[key as keyof T] = value as T[keyof T];
+  });
 
-  const workerApiAndCleanup = { workerApi, cleanup };
-  return workerApiAndCleanup;
+  return oldObj;
 }
 
-export function useWorker() {
-  const workerApiAndCleanup = useMemo(() => makeWorkerApiAndCleanup(), []);
+export function useRefCallback<T>(initialValue: T, callback: (newValue: T) => void): [T, RefCallback<T>] {
+  const [value, setValue] = useState(initialValue);
+  const setRef = useCallback((newValue) => {
+    setValue(newValue);
+    callback(newValue);
+  }, []);
 
-  useEffect(() => {
-    const { cleanup } = workerApiAndCleanup;
-
-    return () => {
-      cleanup();
-    };
-  }, [workerApiAndCleanup]);
-  return workerApiAndCleanup;
+  return [value, setRef];
 }
-
-export default { useWorker };

@@ -10,11 +10,11 @@ export class AtlasDB extends Dexie {
 
   groups!: Table<TreeGroup>;
 
-  __bfs_cache!: Table<{ skill: number; result: any }>;
+  __bfs_cache!: Table<{ skill: number; result: Partial<TreeNode>[] }>;
 
   constructor() {
     super('atlas');
-    this.version(4).stores({
+    this.version(10).stores({
       nodes:
         '++, skill, name, icon, stats, group, orbit, orbitIndex, out, in, flavourText, isNotable, isMastery, isJewelSocket, classStartIndex, ascendancyName, extra, state, allocated',
       connectors: 'id, startNode, endNode, type, state',

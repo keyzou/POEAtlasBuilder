@@ -19495,24 +19495,6 @@
                 }
             }
         ],
-        "keystoneActive": [
-            {
-                "filename": "https://web.poecdn.com/image/passive-skill/atlas-skills-0.jpg?fad254d3",
-                "coords": []
-            },
-            {
-                "filename": "https://web.poecdn.com/image/passive-skill/atlas-skills-1.jpg?c8f07703",
-                "coords": []
-            },
-            {
-                "filename": "https://web.poecdn.com/image/passive-skill/atlas-skills-2.jpg?a2c3c969",
-                "coords": []
-            },
-            {
-                "filename": "https://web.poecdn.com/image/passive-skill/atlas-skills-3.jpg?24b23f0b",
-                "coords": []
-            }
-        ],
         "normalInactive": [
             {
                 "filename": "https://web.poecdn.com/image/passive-skill/atlas-skills-disabled-0.jpg?1a86c21d",
@@ -23875,24 +23857,6 @@
                         "h": 38
                     }
                 }
-            }
-        ],
-        "keystoneInactive": [
-            {
-                "filename": "https://web.poecdn.com/image/passive-skill/atlas-skills-disabled-0.jpg?1a86c21d",
-                "coords": []
-            },
-            {
-                "filename": "https://web.poecdn.com/image/passive-skill/atlas-skills-disabled-1.jpg?0de59889",
-                "coords": []
-            },
-            {
-                "filename": "https://web.poecdn.com/image/passive-skill/atlas-skills-disabled-2.jpg?2ff9f7fa",
-                "coords": []
-            },
-            {
-                "filename": "https://web.poecdn.com/image/passive-skill/atlas-skills-disabled-3.jpg?f0ee2cbe",
-                "coords": []
             }
         ],
         "mastery": [

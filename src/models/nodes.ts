@@ -1,9 +1,11 @@
+import { Container } from 'pixi.js';
 import { State } from './misc';
+import SkillAtlas from './sprite';
 
 type TreeNode = {
   skill: number;
   name: string;
-  icon: string;
+  icon: keyof SkillAtlas['coords'];
   stats: string[];
   group: number;
   orbit: number;
@@ -24,9 +26,17 @@ type TreeNode = {
   allocated?: number;
   hidden?: boolean;
   isStartPoint?: boolean;
-  distanceToStart?: number;
+  distanceToStart: number;
   path: number[];
   pathDistance: number;
+  dependencies: number[];
+  spriteContainer?: Container;
 };
+
+export function sanitizeNode(node: TreeNode) {
+  const sanitizedNode = { ...node };
+  sanitizedNode.spriteContainer = undefined;
+  return sanitizedNode;
+}
 
 export default TreeNode;

@@ -1,4 +1,5 @@
-import { ipcRenderer, contextBridge } from 'electron';
+import { ipcRenderer, contextBridge, clipboard } from 'electron';
+import { autoUpdater } from 'electron-updater';
 
 declare global {
   interface Window {
@@ -17,6 +18,12 @@ export const api = {
    */
   sendMessage: (message: string) => {
     ipcRenderer.send('message', message);
+  },
+  copyToClipboard: (text: string) => {
+    clipboard.writeText(text, 'clipboard');
+  },
+  updateApp: () => {
+    autoUpdater.quitAndInstall();
   },
   /**
     Here function for AppBar
@@ -43,3 +50,5 @@ contextBridge.exposeInMainWorld('Main', api);
  * I advise using the Main/api way !!
  */
 contextBridge.exposeInMainWorld('ipcRenderer', ipcRenderer);
+
+export default api;

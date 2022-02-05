@@ -23,3 +23,28 @@ canvas {
 .atlas {
   background-color: #080C11;
 }
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+    background: #080C11;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: #424242;
+    border-radius: 10px;
+}
+
+.scrollbar-track-rounded-full::-webkit-scrollbar-track{
+    border-radius: 10px;
+}
+.scrollbar-thumb-rounded-full::-webkit-scrollbar-track{
+    border-radius: 10px;
+}
+.scrollbar-thumb-blue-50::-webkit-scrollbar-track {
+    background: #C4C4C4;
+}
+.scrollbar-track-gray-50::-webkit-scrollbar-thumb {
+    background: #6638B6;
+}
