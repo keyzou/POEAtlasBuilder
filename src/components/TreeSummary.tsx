@@ -115,8 +115,8 @@ const TreeSummary: React.FC<Props> = ({ nodes, onImport }) => {
         </div>
       )}
       <div
-        className={`w-[40rem] absolute top-0 h-full pt-8 transition-transform ease-in-out flex z-20${
-          collapsed ? ' -translate-x-[32rem]' : ''
+        className={`w-[40rem] absolute top-0 h-full pt-8 transition-transform ease-in-out flex z-20 ${
+          collapsed ? '-translate-x-[32rem]' : ''
         }`}
       >
         <div className="w-[32rem] flex flex-col h-full shrink bg-zinc-900  text-slate-400 p-3">
