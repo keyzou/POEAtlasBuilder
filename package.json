@@ -20,7 +20,7 @@
     "type": "git",
     "url": "https://github.com/keyzou/poe-atlas-builder.git"
   },
-  "productName": "poe-atlas-builder",
+  "productName": "POE Atlas Builder",
   "scripts": {
     "dev": "concurrently \"yarn dev:vite\" \" yarn dev:electron\"",
     "dev:vite": "vite",
