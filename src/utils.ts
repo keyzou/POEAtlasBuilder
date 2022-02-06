@@ -1,6 +1,4 @@
 import { MutableRefObject, RefCallback, useCallback, useRef, useState } from 'react';
-/* eslint-disable import/no-unresolved */
-// @ts-ignore
 
 export function updateObj<T>(oldObj: T, newObj: Partial<T>) {
   Object.entries(newObj).forEach(([key, value]) => {

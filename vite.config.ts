@@ -1,8 +1,6 @@
 import react from '@vitejs/plugin-react';
 import { UserConfig, ConfigEnv } from 'vite';
 import { join } from 'path';
-import comlink from 'vite-plugin-comlink';
-import worker, { pluginHelper } from 'vite-plugin-worker';
 
 const srcRoot = join(__dirname, 'src');
 
@@ -12,7 +10,7 @@ export default ({ command }: ConfigEnv): UserConfig => {
     return {
       root: srcRoot,
       base: '/',
-      plugins: [comlink(), pluginHelper(), worker({}), react()],
+      plugins: [react()],
       resolve: {
         alias: {
           '@': srcRoot
@@ -35,7 +33,7 @@ export default ({ command }: ConfigEnv): UserConfig => {
   return {
     root: srcRoot,
     base: '',
-    plugins: [comlink(), pluginHelper(), worker({}), react()],
+    plugins: [react()],
     resolve: {
       alias: {
         '@': srcRoot
