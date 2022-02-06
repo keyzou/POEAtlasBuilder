@@ -15,6 +15,7 @@ import TreeGroup from '@/models/groups';
 import SkillAtlas from '@/models/sprite';
 import { FaSearch } from 'react-icons/fa';
 import { emitCustomEvent, useCustomEventListener } from 'react-custom-events';
+import { useForceUpdate } from '@/utils';
 
 interface Props {
   connectors: Connector[];
@@ -33,13 +34,17 @@ const PassiveTreeRenderer: React.FC<Props> = ({ show, connectors: baseConnectors
     })
   );
 
+  const forceUpdate = useForceUpdate();
+
   useCustomEventListener('import-tree', (tree: number[]) => {
     resetTree();
     tree.forEach((x) => {
       allocateNode(nodes.current[x]);
     });
-    allocatedNodes.current = tree;
+    allocatedNodes.current = allocatedNodes.current.concat(tree);
+    emitCustomEvent('allocated-changed', allocatedNodes.current);
     buildAllNodesPaths();
+    forceUpdate();
   });
 
   useCustomEventListener('reset-tree', resetTree);
@@ -69,6 +74,7 @@ const PassiveTreeRenderer: React.FC<Props> = ({ show, connectors: baseConnectors
     Object.values(nodes.current).forEach((value) => {
       nodes.current[value.skill].distanceToStart = nodes.current[value.skill].pathDistance;
     });
+    forceUpdate();
   }
 
   // == Assets Fetching
@@ -514,7 +520,7 @@ const PassiveTreeRenderer: React.FC<Props> = ({ show, connectors: baseConnectors
           });
           allocateNode(n);
           newAllocated.push(n.skill);
-          allocatedNodes.current = newAllocated;
+          allocatedNodes.current = [...new Set(newAllocated)];
           sprite.texture = getNodeFrameTexture(n);
         } else {
           const toUnallocate = Object.values(nodes.current)

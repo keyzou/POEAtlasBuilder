@@ -37,4 +37,6 @@ export const NOTABLE_FRAME_WIDTH = 58;
 export const NOTABLE_FRAME_HEIGHT = 59;
 export const NOTABLE_FRAME_INNER_RADIUS = 35;
 
+export const ATLAS_TREE_POE_VERSION = 6;
+
 export default { skillsPerOrbit, orbitAngles, orbitRadii, calculateOrbitAngles };
