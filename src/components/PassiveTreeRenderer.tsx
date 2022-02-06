@@ -1,11 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import TreeNode, { sanitizeNode } from '@/models/nodes';
+import TreeNode, { NodeContainer } from '@/models/nodes';
 /* eslint-disable import/no-unresolved */
 // @ts-ignore
-import workerCreator from 'comlink:../worker';
 /* eslint-enable import/no-unresolved */
 import { State } from '@/models/misc';
-import { updateObj, useRefCallback } from '@/utils';
 import { SmoothGraphics as Graphics } from '@pixi/graphics-smooth';
 import jsonTree from '@/data/tree.json';
 import { Application, Container, Sprite, Text } from 'pixi.js';
@@ -15,24 +13,17 @@ import Connector from '@/models/connector';
 import { NOTABLE_FRAME_INNER_RADIUS, orbitRadii, SKILL_FRAME_INNER_RADIUS } from '@/constants';
 import TreeGroup from '@/models/groups';
 import SkillAtlas from '@/models/sprite';
-import db from '@/data/db';
 import { FaSearch } from 'react-icons/fa';
+import { emitCustomEvent, useCustomEventListener } from 'react-custom-events';
 
 interface Props {
   connectors: Connector[];
-  nodes: TreeNode[];
+  nodes: NodeContainer;
   groups: TreeGroup[];
-  onNodesChange: (nodes: TreeNode[]) => void;
   show: boolean;
 }
 
-const PassiveTreeRenderer: React.FC<Props> = ({
-  show,
-  onNodesChange,
-  connectors: baseConnectors,
-  nodes: baseNodes,
-  groups
-}) => {
+const PassiveTreeRenderer: React.FC<Props> = ({ show, connectors: baseConnectors, nodes: baseNodes, groups }) => {
   const domElement = useRef<HTMLDivElement>(null);
   const [appInstance, setAppInstance] = React.useState<Application>();
   const viewport = React.useRef<Viewport>(
@@ -42,17 +33,43 @@ const PassiveTreeRenderer: React.FC<Props> = ({
     })
   );
 
+  useCustomEventListener('import-tree', (tree: number[]) => {
+    resetTree();
+    tree.forEach((x) => {
+      allocateNode(nodes.current[x]);
+    });
+    allocatedNodes.current = tree;
+    buildAllNodesPaths();
+  });
+
+  useCustomEventListener('reset-tree', resetTree);
+
   const [searchQuery, setSearchQuery] = React.useState<string>();
 
   const textureManager = useTextureManager();
 
-  const [nodes, setNodes] = useRefCallback<TreeNode[]>(baseNodes, (newValue) => onNodesChange(newValue));
+  const nodes = useRef<NodeContainer>(baseNodes);
   const connectors = React.useRef<Connector[]>(baseConnectors);
   const tooltips = React.useRef<{ [key: number]: Container }>({});
 
-  const allocatedNodes = React.useRef<number[]>([]);
+  const allocatedNodes = useRef<number[]>([]);
 
   const [isReady, setReady] = React.useState<boolean>(false);
+
+  function resetTree() {
+    allocatedNodes.current.forEach((x) => {
+      unallocateNode(nodes.current[x]);
+      nodes.current[x].path = [];
+      nodes.current[x].pathDistance = 1000;
+    });
+    const startingNode = Object.values(nodes.current).find((x) => x.isStartPoint) as TreeNode;
+    allocatedNodes.current = [startingNode.skill];
+    allocateNode(startingNode);
+    buildAllNodesPaths();
+    Object.values(nodes.current).forEach((value) => {
+      nodes.current[value.skill].distanceToStart = nodes.current[value.skill].pathDistance;
+    });
+  }
 
   // == Assets Fetching
   function getNodeFrameTexture(node: TreeNode) {
@@ -77,47 +94,96 @@ const PassiveTreeRenderer: React.FC<Props> = ({
     return 0x3d3a2e;
   }
 
-  async function buildAllNodesPaths(from: TreeNode) {
-    nodes.forEach((n, i, a) => {
+  function buildAllNodesPaths() {
+    Object.values(nodes.current).forEach((n) => {
+      n.pathDistance = 1000;
       n.path = [];
-      a[i] = n;
+      n.isDependencyOf = [];
+      if (allocatedNodes.current.includes(n.skill)) {
+        n.pathDistance = 0;
+        n.isDependencyOf = [n.skill];
+      }
+      nodes.current[n.skill] = n;
     });
+    buildDependencies();
+    for (const skill of allocatedNodes.current) {
+      BFS(skill);
+    }
+  }
 
-    // Since we store the sprite data, we can't send it in the worker so we have to remove it
-    const sanitizedNodes = nodes.map((n) => sanitizeNode(n));
-    const worker = workerCreator();
-    await worker.BFS(from.skill, sanitizedNodes);
-    const allBFS = await db.__bfs_cache.toArray();
-    setNodes(
-      nodes.map((n, i) => {
-        if (n.isMastery) return n;
-        const filteredBFS = allBFS.filter(
-          (bfs) =>
-            !n.isMastery && bfs.skill !== n.skill && allocatedNodes.current.findIndex((x) => x === bfs.skill) !== -1
-        );
-        if (filteredBFS.length === 0) return n;
-        const bestBFS = filteredBFS.reduce((prev, curr) =>
-          (prev.result[i].path?.length ?? 1000) > 0 &&
-          (curr.result[i].path?.length ?? 1000) > 0 &&
-          (prev.result[i].path?.length ?? 1000) < (curr.result[i].path?.length ?? 1000)
-            ? prev
-            : curr
-        );
-        return updateObj(n, {
-          path: bestBFS.result[i].path ?? [],
-          pathDistance: bestBFS.result[i].path?.length ?? 1000
-        });
-      })
-    );
-    const sanitizedAllocatedNodes = nodes
-      .filter((x) => allocatedNodes.current.includes(x.skill))
-      .map((x) => sanitizeNode(x));
-    allocatedNodes.current.forEach(async (skill) => {
-      const n = nodes.find((x) => x.skill === skill);
-      if (!n) return;
-      const nIndex = nodes.findIndex((x) => x.skill === skill);
-      const dependencyPath = await worker.findStartFromNode(skill, sanitizedAllocatedNodes);
-      nodes[nIndex] = updateObj(n, { dependencies: dependencyPath });
+  function findStartFromNode(from: number, searchIn: NodeContainer, visited: Set<number>): boolean {
+    visited.add(from);
+    const node = searchIn[from];
+    if (!node) return false;
+    node.visited = true;
+    const linked = [...node.out, ...node.in].map((o) => searchIn[parseInt(o, 10)]);
+    return linked.some((other) => {
+      if (!other) return false;
+      if (visited.has(other.skill)) return false;
+      if (other.visited) return false;
+      if (other.isStartPoint) return true;
+      return findStartFromNode(other.skill, searchIn, visited);
+    });
+  }
+
+  function BFS(node: number) {
+    const startNode = nodes.current[node];
+    if (!startNode) return;
+    const queue = [];
+    startNode.pathDistance = 0;
+    startNode.path = [];
+    queue.push(startNode);
+    while (queue.length > 0) {
+      const n = queue.shift();
+      if (!n) continue;
+      const currentDistance = n.pathDistance + 1;
+      const linked = [...n.out, ...n.in].map((o) => nodes.current[parseInt(o, 10)]);
+      linked.forEach((other) => {
+        if (!other) return;
+        if (other.pathDistance > currentDistance && !other.isMastery) {
+          other.pathDistance = currentDistance;
+          other.path = [other.skill, ...n.path];
+          queue.push(other);
+        }
+      });
+    }
+  }
+
+  /**
+   * Curtosy of Path of Building again, they're insane
+   * @param nodes Nodes to explore
+   * @returns For each node, which nodes depends on it
+   */
+  function buildDependencies() {
+    const visited = new Set<number>();
+    Object.values(nodes.current).forEach((node) => {
+      node.visited = true;
+      const linked = [...node.out, ...node.in].map((o) => nodes.current[parseInt(o, 10)]);
+      linked.forEach((other) => {
+        if (!other) return;
+        if (other.visited) return;
+        if (!other.allocated) return;
+        if (node.isDependencyOf.includes(other.skill)) return;
+        if (findStartFromNode(other.skill, nodes.current, visited)) {
+          // We found the starting point, so they're not dependent on this node
+          visited.forEach((x) => {
+            const n = nodes.current[x];
+            if (!n) return;
+            n.visited = false;
+          });
+          visited.clear();
+        } else {
+          // No path found, they must depend on this node
+          visited.forEach((x) => {
+            node.isDependencyOf.push(x);
+            const n = nodes.current[x];
+            if (!n) return;
+            n.visited = false;
+          });
+          visited.clear();
+        }
+      });
+      node.visited = false;
     });
   }
 
@@ -125,12 +191,12 @@ const PassiveTreeRenderer: React.FC<Props> = ({
     node.allocated = 1;
     node.state = State.ACTIVE;
     if (node.isNotable) {
-      const masteryNode = nodes.find((x) => x.isMastery && x.group === node.group);
+      const masteryNode = Object.values(nodes.current).find((x) => x.isMastery && x.group === node.group);
       if (!masteryNode) return;
       masteryNode.state = State.ACTIVE;
     }
     node.out.forEach((o) => {
-      const otherNode = nodes.find((n2) => n2.skill.toString() === o);
+      const otherNode = nodes.current[parseInt(o, 10)];
       if (!otherNode) return;
       if (!otherNode.allocated) {
         otherNode.canAllocate = true;
@@ -148,7 +214,7 @@ const PassiveTreeRenderer: React.FC<Props> = ({
     });
 
     node.in.forEach((i) => {
-      const otherNode = nodes.find((x) => x.skill.toString() === i);
+      const otherNode = nodes.current[parseInt(i, 10)];
       if (!otherNode) return;
       if (!otherNode.allocated) {
         otherNode.canAllocate = true;
@@ -169,8 +235,9 @@ const PassiveTreeRenderer: React.FC<Props> = ({
   function unallocateNode(node: TreeNode) {
     node.allocated = 0;
     node.state = State.DEFAULT;
+    node.isDependencyOf = [];
     node.out.forEach((o) => {
-      const otherNode = nodes.find((n2) => n2.skill.toString() === o);
+      const otherNode = nodes.current[parseInt(o, 10)];
       if (!otherNode) return;
       if (!otherNode.allocated) {
         otherNode.canAllocate = false;
@@ -186,7 +253,7 @@ const PassiveTreeRenderer: React.FC<Props> = ({
       redrawConnector(connector);
     });
     node.in.forEach((i) => {
-      const otherNode = nodes.find((n2) => n2.skill.toString() === i);
+      const otherNode = nodes.current[parseInt(i, 10)];
       if (!otherNode) return;
       if (!otherNode.allocated) {
         otherNode.canAllocate = false;
@@ -202,8 +269,8 @@ const PassiveTreeRenderer: React.FC<Props> = ({
       redrawConnector(connector);
     });
 
-    if (!nodes.some((x) => x.group === node.group && x.isNotable && x.allocated)) {
-      const masteryNode = nodes.find((x) => x.isMastery && x.group === node.group);
+    if (!Object.values(nodes.current).some((x) => x.group === node.group && x.isNotable && x.allocated)) {
+      const masteryNode = Object.values(nodes.current).find((x) => x.isMastery && x.group === node.group);
       if (!masteryNode) return;
       masteryNode.state = State.DEFAULT;
     }
@@ -212,12 +279,12 @@ const PassiveTreeRenderer: React.FC<Props> = ({
   // // == Canvas rendering
 
   function redrawConnector(c: Connector) {
-    if (!viewport) return;
+    if (!viewport.current) return;
     if (c.hidden) return;
     if (!c.sprite) return;
     c.sprite.clear();
-    const startNode = nodes.find((x) => x.skill === c.startNode);
-    const endNode = nodes.find((x) => x.skill === c.endNode);
+    const startNode = nodes.current[c.startNode];
+    const endNode = nodes.current[c.endNode];
     if (!startNode || !endNode) return;
     if (startNode.group === endNode.group && startNode.orbit === endNode.orbit && startNode.group && startNode.orbit) {
       const group = groups.find((x) => x.nodes.includes(startNode.skill.toString()));
@@ -272,10 +339,11 @@ const PassiveTreeRenderer: React.FC<Props> = ({
   }
 
   function buildTooltips() {
-    if (!appInstance) return;
+    if (!appInstance || !appInstance.stage) return;
     // Just in case someday we'll edit them
     const newTooltips = { ...tooltips.current };
-    nodes.forEach((node) => {
+    Object.values(nodes.current).forEach((node) => {
+      if (!appInstance) return;
       const nodeName = new Text(`${node.name} (${node.skill})`, { fontSize: 32, fontWeight: 'bold', fill: 0xdccbb2 });
       nodeName.position.set(15, 15);
       const stats = new Text(node.stats.join('\n'), { fontSize: 20, fill: 0x7373d7 });
@@ -300,7 +368,7 @@ const PassiveTreeRenderer: React.FC<Props> = ({
 
   function addNodesToViewport() {
     if (!appInstance) return;
-    nodes.forEach((node) => {
+    Object.values(nodes.current).forEach((node) => {
       if (!viewport.current) return;
       if (node.hidden) return;
       if (node.isMastery) {
@@ -376,7 +444,7 @@ const PassiveTreeRenderer: React.FC<Props> = ({
       sprite.name = `Node{${node.skill}}`;
 
       sprite.on('mouseover', () => {
-        const n = nodes.find((x) => x.skill === node.skill);
+        const n = nodes.current[node.skill];
         if (!n) return;
         // Todo handle hovers better
         if (n.skill in tooltips.current) {
@@ -385,10 +453,9 @@ const PassiveTreeRenderer: React.FC<Props> = ({
         if (n.allocated) return;
         n.state = State.INTERMEDIATE;
         sprite.texture = getNodeFrameTexture(n);
-        const pathToCurrent = [...n.path, n.skill];
-        for (let i = 1; i < pathToCurrent.length; i += 1) {
-          const from = nodes.find((x) => x.skill === pathToCurrent[i - 1]);
-          const to = nodes.find((x) => x.skill === pathToCurrent[i]);
+        for (let i = 1; i < n.path.length; i += 1) {
+          const from = nodes.current[n.path[i - 1]];
+          const to = nodes.current[n.path[i]];
 
           if (!from || !to) continue;
           from.state = from.state === State.DEFAULT ? State.INTERMEDIATE : from.state;
@@ -405,7 +472,7 @@ const PassiveTreeRenderer: React.FC<Props> = ({
       });
 
       sprite.on('mouseout', () => {
-        const n = nodes.find((x) => x.skill === node.skill);
+        const n = nodes.current[node.skill];
         if (!n) return;
         if (n.skill in tooltips.current) {
           tooltips.current[n.skill].visible = false;
@@ -413,10 +480,9 @@ const PassiveTreeRenderer: React.FC<Props> = ({
         if (n.allocated) return;
         n.state = State.DEFAULT;
         sprite.texture = getNodeFrameTexture(n);
-        const pathToCurrent = [...n.path, n.skill];
-        for (let i = 1; i < pathToCurrent.length; i += 1) {
-          const from = nodes.find((x) => x.skill === pathToCurrent[i - 1]);
-          const to = nodes.find((x) => x.skill === pathToCurrent[i]);
+        for (let i = 1; i < n.path.length; i += 1) {
+          const from = nodes.current[n.path[i - 1]];
+          const to = nodes.current[n.path[i]];
           if (!from || !to) continue;
           from.state = from.state === State.INTERMEDIATE ? State.DEFAULT : from.state;
           if (from.spriteContainer) (from.spriteContainer.children[1] as Sprite).texture = getNodeFrameTexture(from);
@@ -434,13 +500,13 @@ const PassiveTreeRenderer: React.FC<Props> = ({
       sprite.on('click', async () => {
         if (!viewport.current) return;
         if (viewport.current.moving) return;
-        const n = nodes.find((x) => x.skill === node.skill);
+        const n = nodes.current[node.skill];
         if (!n) return;
         n.allocated = node.allocated ?? 0 ? 0 : 1;
         if (n.allocated) {
           const newAllocated = [...(allocatedNodes.current ?? [])];
           n.path.forEach((childNode) => {
-            const other = nodes.find((x) => x.skill === childNode);
+            const other = nodes.current[childNode];
             if (!other) return;
             if (!newAllocated.includes(other.skill)) newAllocated.push(other.skill);
             other.allocated = 1;
@@ -449,18 +515,20 @@ const PassiveTreeRenderer: React.FC<Props> = ({
           allocateNode(n);
           newAllocated.push(n.skill);
           allocatedNodes.current = newAllocated;
-          await buildAllNodesPaths(n);
           sprite.texture = getNodeFrameTexture(n);
         } else {
-          const toUnallocate = nodes
-            .filter((x) => x.dependencies.includes(n.skill))
+          const toUnallocate = Object.values(nodes.current)
+            .filter((x) => n.isDependencyOf.includes(x.skill))
             .sort((a, b) => b.distanceToStart - a.distanceToStart);
           toUnallocate.forEach((x) => unallocateNode(x));
           allocatedNodes.current = allocatedNodes.current.filter(
             (x) => toUnallocate.findIndex((x2) => x === x2.skill) === -1
           );
         }
+        emitCustomEvent('allocated-changed', allocatedNodes.current);
+        buildAllNodesPaths();
       });
+
       container.addChild(sprite);
       node.spriteContainer = container;
 
@@ -473,8 +541,8 @@ const PassiveTreeRenderer: React.FC<Props> = ({
     connectors.current.forEach((c, i, a) => {
       if (!viewport.current) return;
       if (c.hidden) return;
-      const startNode = nodes.find((x) => x.skill === c.startNode);
-      const endNode = nodes.find((x) => x.skill === c.endNode);
+      const startNode = nodes.current[c.startNode];
+      const endNode = nodes.current[c.endNode];
       if (!startNode || !endNode) return;
       if (
         startNode.group === endNode.group &&
@@ -541,14 +609,7 @@ const PassiveTreeRenderer: React.FC<Props> = ({
   function addGroupsToViewport() {
     Object.entries(groups).forEach(([id, g]) => {
       if (!viewport.current) return;
-      // Skip ascendancies
-      if (
-        !g.orbits ||
-        g.orbits.length === 0 ||
-        g.isProxy ||
-        g.nodes.some((n) => nodes.find((n2) => n2.skill === parseInt(n, 10))?.ascendancyName)
-      )
-        return;
+      if (!g.orbits || g.orbits.length === 0 || g.isProxy) return;
 
       const maxOrbit = Math.max(...g.orbits);
       if (maxOrbit === 0 || maxOrbit >= 4) return;
@@ -565,7 +626,7 @@ const PassiveTreeRenderer: React.FC<Props> = ({
   // == Canvas setup
 
   function tickNodes() {
-    nodes.forEach((node) => {
+    Object.values(nodes.current).forEach((node) => {
       if (!node.spriteContainer) return;
       if (node.isMastery) {
         const [skill] = node.spriteContainer.children;
@@ -678,15 +739,14 @@ const PassiveTreeRenderer: React.FC<Props> = ({
   }, [appInstance, viewport]);
 
   useEffect(() => {
-    (async () => {
-      const startingNode = nodes.find((x) => x.isStartPoint) as TreeNode;
-      allocatedNodes.current = [startingNode.skill];
-      await buildAllNodesPaths(startingNode);
-      nodes.forEach((x) => {
-        x.distanceToStart = x.pathDistance;
-      });
-      setReady(true);
-    })();
+    if (!nodes.current) return;
+    const startingNode = Object.values(nodes.current).find((x) => x.isStartPoint) as TreeNode;
+    allocatedNodes.current = [startingNode.skill];
+    buildAllNodesPaths();
+    Object.values(nodes.current).forEach((x) => {
+      x.distanceToStart = x.pathDistance;
+    });
+    setReady(true);
   }, []);
 
   useEffect(() => {
@@ -709,10 +769,11 @@ const PassiveTreeRenderer: React.FC<Props> = ({
       });
     const cleanQuery = searchQuery.split(' ').filter((q: string) => q.length >= 3);
     if (cleanQuery.length === 0) return;
-    const matchedNodes = nodes.filter((x) =>
+    const matchedNodes = Object.values(nodes.current).filter((x) =>
       cleanQuery.some(
         (q) =>
           x.name.toLowerCase().includes(q.toLowerCase()) ||
+          q === x.skill.toString() ||
           x.stats.some((s) => s.toLowerCase().includes(q.toLowerCase()))
       )
     );
@@ -727,13 +788,6 @@ const PassiveTreeRenderer: React.FC<Props> = ({
         ((c as Container).children[1] as Sprite).tint = 0xff0000;
       });
   }, [searchQuery]);
-
-  React.useEffect(() => {
-    nodes.forEach((x, i, a) => {
-      a[i] = updateObj(x, baseNodes[i]);
-      if (a[i].allocated) allocateNode(a[i]);
-    });
-  }, [baseNodes]);
 
   const handleSearch = (event: React.FormEvent<HTMLInputElement>) => {
     setSearchQuery(event.currentTarget.value);

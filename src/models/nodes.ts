@@ -23,15 +23,18 @@ type TreeNode = {
   extra: { [key: string]: any };
   state?: State;
   canAllocate?: boolean;
-  allocated?: number;
+  allocated: number;
   hidden?: boolean;
   isStartPoint?: boolean;
   distanceToStart: number;
   path: number[];
   pathDistance: number;
-  dependencies: number[];
+  isDependencyOf: number[];
+  visited?: boolean;
   spriteContainer?: Container;
 };
+
+export type NodeContainer = { [key: number]: TreeNode };
 
 export function sanitizeNode(node: TreeNode) {
   const sanitizedNode = { ...node };

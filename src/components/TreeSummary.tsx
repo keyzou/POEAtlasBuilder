@@ -1,22 +1,27 @@
 import React from 'react';
-import TreeNode from '@/models/nodes';
+import { NodeContainer } from '@/models/nodes';
 import { FaChevronCircleLeft, FaChevronCircleRight, FaChevronRight } from 'react-icons/fa';
 import reactStringReplace from 'react-string-replace';
+import { emitCustomEvent, useCustomEventListener } from 'react-custom-events';
 
 interface Props {
-  nodes: TreeNode[];
-  onImport: (allocated: number[]) => void;
+  nodes: NodeContainer;
 }
 
-const TreeSummary: React.FC<Props> = ({ nodes, onImport }) => {
+const TreeSummary: React.FC<Props> = ({ nodes }) => {
   const [collapsed, setCollapsed] = React.useState<boolean>(true);
 
+  const [allocatedNodes, setAllocatedNodes] = React.useState<number[]>([]);
   const [allocatedModGroups, setAllocatedModGroups] = React.useState<Record<string, number>>({});
 
+  useCustomEventListener('allocated-changed', (allocated: number[]) => {
+    setAllocatedNodes(allocated);
+  });
+
   React.useEffect(() => {
-    if (nodes.filter((x) => x.allocated).length === 0) return;
-    const allocatedStats = nodes
-      .filter((x) => x.allocated)
+    if (allocatedNodes.length === 0) return;
+    const allocatedStats = Object.values(nodes)
+      .filter((x) => allocatedNodes.includes(x.skill))
       .map((x) => x.stats)
       .reduce((acc, curr) => acc.concat(curr));
     const newAllocatedModsGroups: Record<string, number> = {};
@@ -24,7 +29,8 @@ const TreeSummary: React.FC<Props> = ({ nodes, onImport }) => {
       // Does it match #% ?
       const matchPercent = x.match(/\+?(\d*\.?\d+)%/);
       const matchAdditional = x.match(/an additional/);
-      const matchFlat = x.match(/\+(\d*\.?\d+)/);
+      const matchPlusFlat = x.match(/\+(\d*\.?\d+)/);
+      const matchFlat = x.match(/(\d*\.?\d+)/);
       if (matchPercent) {
         const generic = x.slice().replace(/(\+?)(\d*\.?\d+)%/, '$1#%');
         const extractedValue = parseFloat(matchPercent[0]);
@@ -38,16 +44,27 @@ const TreeSummary: React.FC<Props> = ({ nodes, onImport }) => {
         if (!newAllocatedModsGroups[generic] && newAllocatedModsGroups[generic] !== 0)
           newAllocatedModsGroups[generic] = 0;
         newAllocatedModsGroups[generic] += extractedValue;
-      } else if (matchFlat) {
+      } else if (matchPlusFlat) {
         const generic = x.slice().replace(/\+(\d*\.?\d+)/, '+#');
+        const extractedValue = parseFloat(matchPlusFlat[0]);
+        if (!newAllocatedModsGroups[generic] && newAllocatedModsGroups[generic] !== 0)
+          newAllocatedModsGroups[generic] = 0;
+        newAllocatedModsGroups[generic] += extractedValue;
+      } else if (matchFlat) {
+        const generic = x.slice().replace(/(\d*\.?\d+)/, '#');
         const extractedValue = parseFloat(matchFlat[0]);
         if (!newAllocatedModsGroups[generic] && newAllocatedModsGroups[generic] !== 0)
           newAllocatedModsGroups[generic] = 0;
         newAllocatedModsGroups[generic] += extractedValue;
+      } else {
+        // No match, must be non-scalable modifier
+        const generic = x.slice();
+        if (!newAllocatedModsGroups[generic] && newAllocatedModsGroups[generic] !== 1)
+          newAllocatedModsGroups[generic] = 1;
       }
     });
     setAllocatedModGroups(newAllocatedModsGroups);
-  }, [nodes]);
+  }, [allocatedNodes]);
 
   const [showValidation, setShowValidation] = React.useState<boolean>(false);
   const [showError, setShowError] = React.useState<boolean>(false);
@@ -55,7 +72,7 @@ const TreeSummary: React.FC<Props> = ({ nodes, onImport }) => {
   const [textareaText, setTextareaText] = React.useState<string>();
 
   const handleExport = () => {
-    const convertedNodes = btoa(JSON.stringify(nodes.filter((x) => x.allocated).map((x) => x.skill)));
+    const convertedNodes = btoa(JSON.stringify(allocatedNodes));
     window.Main.copyToClipboard(convertedNodes);
     setShowValidation(true);
     setTimeout(() => setShowValidation(false), 10000);
@@ -69,12 +86,18 @@ const TreeSummary: React.FC<Props> = ({ nodes, onImport }) => {
     if (!textareaText) return;
     try {
       const allocatedJSON = JSON.parse(atob(textareaText));
-      onImport(allocatedJSON);
+      emitCustomEvent('import-tree', allocatedJSON);
     } catch {
       setShowError(true);
       setTimeout(() => setShowError(false), 5000);
     }
     setShowImportModal(false);
+  };
+
+  const handleReset = () => {
+    setAllocatedNodes([]);
+    setAllocatedModGroups({});
+    emitCustomEvent('reset-tree');
   };
 
   /* eslint-disable jsx-a11y/click-events-have-key-events */
@@ -133,6 +156,12 @@ const TreeSummary: React.FC<Props> = ({ nodes, onImport }) => {
             >
               Import
             </button>
+            <button
+              onClick={handleReset}
+              className="py-1 px-10 bg-red-900 bg-opacity-30 text-red-200 text-opacity-50 hover:text-red-400 rounded cursor-pointer hover:bg-red-900 hover:bg-opacity-40 font-bold"
+            >
+              Reset
+            </button>
           </div>
           {showValidation && (
             <div className="px-2 py-2 rounded bg-lime-700 bg-opacity-10 border-lime-900 border text-lime-600 text-center">
@@ -153,10 +182,20 @@ const TreeSummary: React.FC<Props> = ({ nodes, onImport }) => {
                 <FaChevronRight className="inline h-full mt-1 text-orange-400 text-opacity-70 mr-1" />
                 <span>
                   {reactStringReplace(modDesc, '#', () => {
-                    if (modDesc.includes('#%')) return <span className="text-sky-500 font-bold">{modValue}</span>;
-                    if (modDesc.includes('+#')) return <span className="text-sky-500 font-bold">{modValue}</span>;
+                    if (modDesc.includes('#%'))
+                      return (
+                        <span key={modDesc} className="text-sky-500 font-bold">
+                          {modValue}
+                        </span>
+                      );
+                    if (modDesc.includes('+#'))
+                      return (
+                        <span key={modDesc} className="text-sky-500 font-bold">
+                          {modValue}
+                        </span>
+                      );
                     return (
-                      <span className="text-sky-500 font-bold">
+                      <span key={modDesc} className="text-sky-500 font-bold">
                         {modValue === 1 ? 'an' : modValue} additional{modValue > 1 ? 's' : ''}
                       </span>
                     );

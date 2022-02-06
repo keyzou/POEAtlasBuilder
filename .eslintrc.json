@@ -33,6 +33,7 @@
     ],
     // Typescript
     "no-underscore-dangle": "off",
+    "no-restricted-syntax": "off",
     "no-param-reassign": "off",
     "consistent-return": "off",
     "no-use-before-define": "off",

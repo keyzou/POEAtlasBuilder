@@ -1,5 +1,4 @@
-import { releaseProxy, wrap } from 'comlink';
-import { RefCallback, useCallback, useEffect, useMemo, useState } from 'react';
+import { MutableRefObject, RefCallback, useCallback, useRef, useState } from 'react';
 /* eslint-disable import/no-unresolved */
 // @ts-ignore
 
@@ -12,10 +11,28 @@ export function updateObj<T>(oldObj: T, newObj: Partial<T>) {
   return oldObj;
 }
 
-export function useRefCallback<T>(initialValue: T, callback: (newValue: T) => void): [T, RefCallback<T>] {
+export function useStateCallback<T>(initialValue: T, callback: (newValue: T) => void): [T, RefCallback<T>] {
   const [value, setValue] = useState(initialValue);
   const setRef = useCallback((newValue) => {
     setValue(newValue);
+    callback(newValue);
+  }, []);
+
+  return [value, setRef];
+}
+
+export function useForceUpdate() {
+  const [, setValue] = useState(0); // integer state
+  return () => setValue((value) => value + 1); // update the state to force render
+}
+
+export function useRefCallback<T>(
+  initialValue: T,
+  callback: (newValue: T) => void
+): [MutableRefObject<T>, RefCallback<T>] {
+  const value = useRef<T>(initialValue);
+  const setRef = useCallback((newValue) => {
+    value.current = newValue;
     callback(newValue);
   }, []);
 
