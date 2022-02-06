@@ -13,7 +13,7 @@
 
 > Build and plan your Path of Exile Atlas tree !
 
-[The application itself !](Screenshot.png)
+![The application itself !](Screenshot.png)
 
 ### 🏠 [Homepage](https://github.com/keyzou/POEAtlasBuilder)
 
