@@ -50,8 +50,15 @@ const TreeSummary: React.FC = () => {
   const [leagueGroupedModifiers, setLeagueGroupedModifiers] =
     React.useState<LeagueGroupedModifiers>({})
 
+  const navigate = useNavigate()
+
   useEventListener('allocated-changed', (allocated: number[]) => {
     setAllocatedNodes(allocated)
+
+    if (!allocated) return
+    if (allocated.length === 1 && allocated[0] === 29045) return
+    const url = skillTreeManager.exportTree()
+    navigate(`/tree/${url}`, { replace: true })
   })
   const forceUpdate = useForceUpdate()
 
@@ -241,16 +248,6 @@ const TreeSummary: React.FC = () => {
       skillTreeManager.name ?? 'Untitled Tree'
     } - POE Atlas Builder`
   }, [skillTreeManager.name])
-
-  const navigate = useNavigate()
-
-  React.useEffect(() => {
-    const allocated = skillTreeManager.getAllocatedSkills()
-    if (!allocated) return
-    if (allocated.length === 1 && allocated[0] === 29045) return
-    const url = skillTreeManager.exportTree()
-    navigate(`/tree/${url}`, { replace: true })
-  }, [navigate, skillTreeManager, skillTreeManager.getAllocatedSkills()])
 
   const filterLeagues = React.useCallback(
     ([, modifiers]: [string, Modifiers]): boolean => {
