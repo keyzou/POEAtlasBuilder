@@ -13,7 +13,7 @@ import {
   FaChevronRight
 } from 'react-icons/fa'
 import { CgImport, CgExport } from 'react-icons/cg'
-import { useParams, usePrompt } from 'react-router-dom'
+import { useNavigate, useParams, usePrompt } from 'react-router-dom'
 import reactStringReplace from 'react-string-replace'
 import {
   emitEvent,
@@ -221,10 +221,10 @@ const TreeSummary: React.FC = () => {
     [onClickNew]
   )
 
-  usePrompt(
-    'You have unsaved changes ! Do you still wish to leave ?',
-    skillTreeManager.isDirty()
-  )
+  // usePrompt(
+  //   'You have unsaved changes ! Do you still wish to leave ?',
+  //   skillTreeManager.isDirty()
+  // )
 
   React.useEffect(() => {
     if (skillTreeManager.isDirty()) {
@@ -241,6 +241,16 @@ const TreeSummary: React.FC = () => {
       skillTreeManager.name ?? 'Untitled Tree'
     } - POE Atlas Builder`
   }, [skillTreeManager.name])
+
+  const navigate = useNavigate()
+
+  React.useEffect(() => {
+    const allocated = skillTreeManager.getAllocatedSkills()
+    if (!allocated) return
+    if (allocated.length === 1 && allocated[0] === 29045) return
+    const url = skillTreeManager.exportTree()
+    navigate(`/tree/${url}`, { replace: true })
+  }, [navigate, skillTreeManager, skillTreeManager.getAllocatedSkills()])
 
   const filterLeagues = React.useCallback(
     ([, modifiers]: [string, Modifiers]): boolean => {
@@ -287,14 +297,14 @@ const TreeSummary: React.FC = () => {
         }`}
       >
         <div className='flex h-full w-[32rem] shrink flex-col bg-zinc-900 text-slate-400'>
-          <div className='flex items-center justify-center py-3'>
+          <div className='flex items-center justify-center pt-3'>
             <img src={logo} className='w-10' alt='POE Atlas Builder' />
             <h1 className='font-serif ml-3 text-xl font-bold text-zinc-200'>
               POE Atlas Builder
               <small className='ml-2 text-slate-500'>v{p.version}</small>
             </h1>
           </div>
-          <div className='flex flex-col items-center justify-center p-3'>
+          <div className='mb-3 flex flex-col items-center justify-center p-3'>
             <span className='text-sm font-bold uppercase italic text-slate-600'>
               Current Build
             </span>
@@ -309,7 +319,7 @@ const TreeSummary: React.FC = () => {
               </h1>
             </div>
           </div>
-          <div className='grid grid-cols-3 gap-3 px-5'>
+          <div className='mb-5 grid grid-cols-3 gap-3 px-5'>
             <button
               type='button'
               disabled={allocatedNodes.length === 0}

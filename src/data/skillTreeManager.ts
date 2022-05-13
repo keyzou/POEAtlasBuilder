@@ -100,6 +100,7 @@ class SkillTreeManager {
   }
 
   public exportTree(): string {
+    if (this.getAllocatedSkills().length === 0) return ''
     const concatedNodes = []
 
     for (const bytes of this.getAllocatedSkills()
