@@ -1,13 +1,183 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	@font-face {
+		font-family: Inter;
+		font-style: normal;
+		font-weight: 400;
+		font-display: swap;
+		src: url('./assets/fonts/Inter-Regular.woff2') format('woff2');
+	}
+	@font-face {
+		font-family: Inter;
+		font-style: normal;
+		font-weight: 500;
+		font-display: swap;
+		src: url('./assets/fonts/Inter-Medium.woff2') format('woff2');
+	}
+	@font-face {
+		font-family: Inter;
+		font-style: normal;
+		font-weight: 700;
+		font-display: swap;
+		src: url('./assets/fonts/Inter-Bold.woff2') format('woff2');
+	}
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+body {
+  background-color: #080c11;
+}
+
+.league {
+	background-image: url('./assets/icons/atlases/atlas-mastery-active-3.png');
+	background-size: 18rem;
+	background-position: 0 0;
+	width: 3rem;
+	height: 3rem;
+}
+
+.league--abyss {
+	background-position: 0 0;
+}
+
+.league--incursion {
+	background-position: -3rem 0;
+}
+
+.league--anarchy {
+	background-position: -6rem 0;
+}
+
+.league--bestiary {
+	background-position: -9rem 0;
+}
+
+.league--beyond {
+	background-position: -12rem 0;
+}
+
+.league--blight {
+	background-position: -15rem 0;
+}
+
+.league--map-bosses {
+	background-position: 0 -3rem;
+}
+
+.league--breach {
+	background-position: -3rem -3rem;
+}
+
+.league--the-searing-exarch {
+	background-position: -6rem -3rem;
+}
+
+.league--conqueror {
+	background-position: -9rem -3rem;
+}
+
+.league--delirium {
+	background-position: -12rem -3rem;
+}
+
+.league--delve {
+	background-position: -15rem -3rem;
+}
+
+.league--domination {
+	background-position: 0 -6rem;
+}
+
+.league--elder-shaper {
+	background-position: -3rem -6rem;
+}
+
+.league--essence {
+	background-position: -6rem -6rem;
+}
+
+.league--expedition {
+	background-position: -9rem -6rem;
+}
+
+.league--harbinger {
+	background-position: -12rem -6rem;
+}
+
+.league--harvest {
+	background-position: -15rem -6rem;
+}
+
+.league--heist {
+	background-position: 0 -9rem;
+}
+
+.league--betrayal {
+	background-position: -3rem -9rem;
+}
+
+.league--kirac {
+	background-position: -6rem -9rem;
+}
+
+.league--ascendancy {
+	background-position: -9rem -9rem;
+}
+
+.league--legion {
+	background-position: -12rem -9rem;
+}
+
+.league--maps {
+	background-position: -15rem -9rem;
+}
+
+.league--metamorph {
+	background-position: 0 -12rem;
+}
+
+.league--rare {
+	background-position: -3rem -12rem;
+}
+
+.league--ritual {
+	background-position: -6rem -12rem;
+}
+
+.league--scarabs {
+	background-position: -9rem -12rem;
+}
+
+.league--sextants {
+	background-position: -12rem -12rem;
+}
+
+.league--ambush {
+	background-position: -15rem -12rem;
+}
+
+.league--synthesis {
+	background-position: 0 -15rem;
+}
+
+.league--the-eater-of-worlds {
+	background-position: -3rem -15rem;
+}
+
+.league--torment {
+	background-position: -6rem -15rem;
+}
+
+.league--unique {
+	background-position: -9rem -15rem;
+}
+
+.league--vaal {
+	background-position: -12rem -15rem;
+}
+
+.league--misc {
+	background-position: -15rem -15rem;
 }
