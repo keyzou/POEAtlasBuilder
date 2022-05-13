@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "POE Atlas Builder",
+  "name": "Plan and build your Path of Exile Atlas trees",
   "icons": [
     {
       "src": "favicon.ico",

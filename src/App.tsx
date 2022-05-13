@@ -7,9 +7,9 @@ const AtlasSkillTree = lazy(async () => import('pages/AtlasSkillTree'))
 
 const App = (): ReactElement => (
   <HashRouter>
-    <Routes>
+    <Routes basename='/'>
       <Route
-        path='/:tree'
+        path=':tree'
         element={
           <Suspense fallback={<LoadingOrError />}>
             <AtlasSkillTree />
