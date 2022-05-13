@@ -1,12 +1,12 @@
 import LoadingOrError from 'components/LoadingOrError'
 import { ReactElement } from 'react'
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { HashRouter, Route, Routes } from 'react-router-dom'
 
 const AtlasSkillTree = lazy(async () => import('pages/AtlasSkillTree'))
 
 const App = (): ReactElement => (
-  <BrowserRouter>
+  <HashRouter>
     <Routes>
       <Route
         path='/:tree'
@@ -17,7 +17,7 @@ const App = (): ReactElement => (
         }
       />
     </Routes>
-  </BrowserRouter>
+  </HashRouter>
 )
 
 export default App
