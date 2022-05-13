@@ -362,18 +362,18 @@ const TreeSummary: React.FC = () => {
               <Badge className='ml-2 bg-slate-700 text-slate-100'>3.18.0</Badge>
             </span>
           </div>
-          <div className='p-3'>
-            <h3 className='mt-3 mb-3 w-full text-center text-sm font-bold uppercase text-orange-400 text-opacity-70'>
-              Current modifiers
-            </h3>
-            <input
-              type='text'
-              value={filterValue}
-              placeholder='Search for modifiers...'
-              className='mb-5 w-full  rounded bg-zinc-800 px-2.5 py-1.5 text-sm placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-0'
-              onChange={e => setFilterValue(e.target.value)}
-            />
-            <ul className='h-full overflow-y-auto'>
+          <h3 className='mt-3 mb-3 w-full text-center text-sm font-bold uppercase text-orange-400 text-opacity-70'>
+            Current modifiers
+          </h3>
+          <input
+            type='text'
+            value={filterValue}
+            placeholder='Search for modifiers...'
+            className='mx-5 mb-5 w-auto  rounded bg-zinc-800 px-2.5 py-1.5 text-sm placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-0'
+            onChange={e => setFilterValue(e.target.value)}
+          />
+          <div className='flex min-h-0 flex-auto flex-col overflow-y-auto p-3'>
+            <ul className=''>
               {Object.entries(leagueGroupedModifiers)
                 .filter(x => filterLeagues(x))
                 .sort(([aLeague], [bLeague]) => aLeague.localeCompare(bLeague))
