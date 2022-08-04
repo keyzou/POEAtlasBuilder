@@ -1,3 +1,4 @@
+import { TreeRenderer } from 'atlas'
 import TreeSummary from 'components/TreeSummary'
 import SkillTreeManager from 'data/skillTreeManager'
 import tree from 'data/tree.json'
@@ -9,26 +10,17 @@ import type PassiveTree from 'models/tree'
 import React, { lazy } from 'react'
 import { orbitAngles, orbitRadii } from '../constants'
 
-const PassiveTreeRenderer = lazy(
-  async () => import('components/PassiveTreeRenderer')
+export const SkillTreeContext = React.createContext<TreeRenderer | undefined>(
+  undefined
 )
 
-export const SkillTreeContext = React.createContext(new SkillTreeManager([]))
-
 const AtlasSkillTree: React.FC = () => {
-  const [connectors, setConnectors] = React.useState<Connector[]>([])
-  const [groups, setGroups] = React.useState<Record<string, TreeGroup>>({})
-  const [nodes, setNodes] = React.useState<NodeContainer>({})
-  const [passiveTree, setPassiveTree] = React.useState<PassiveTree>()
+  const [treeRenderer, setTreeRenderer] = React.useState<TreeRenderer>()
+  const treeContainer = React.useRef<HTMLDivElement>(null)
   const [isAppReady, setAppReady] = React.useState<boolean>(false)
 
-  const skillTreeManager = React.useMemo(
-    () => new SkillTreeManager(nodes),
-    [nodes]
-  )
-
   React.useEffect(() => {
-    if (isAppReady) return
+    if (!treeContainer.current) return
     const data = tree as PassiveTree
     const filteredNodes = Object.fromEntries(
       Object.entries(data.nodes).filter(
@@ -110,23 +102,28 @@ const AtlasSkillTree: React.FC = () => {
       }
     }
 
-    setPassiveTree(data)
-    setGroups(data.groups)
-    setNodes(filteredNodes)
-    setConnectors(initConnectors)
-    setAppReady(true)
-  }, [tree, isAppReady])
+    const renderer = new TreeRenderer(
+      filteredNodes,
+      data.groups,
+      initConnectors,
+      data
+    )
+    setTreeRenderer(renderer)
+    renderer.setup(treeContainer.current).then(() => {
+      setAppReady(true)
+    })
+  }, [])
+
+  React.useEffect(() => {
+    if (!isAppReady || !treeRenderer) return
+    if (!treeRenderer.isReady()) return
+    treeRenderer.start()
+  }, [isAppReady, treeRenderer])
 
   return (
-    <SkillTreeContext.Provider value={skillTreeManager}>
+    <SkillTreeContext.Provider value={treeRenderer}>
       <TreeSummary />
-      {isAppReady && passiveTree !== undefined && (
-        <PassiveTreeRenderer
-          connectors={connectors}
-          groups={groups}
-          jsonTree={passiveTree}
-        />
-      )}
+      <div ref={treeContainer} id='tree-container' />
     </SkillTreeContext.Provider>
   )
 }

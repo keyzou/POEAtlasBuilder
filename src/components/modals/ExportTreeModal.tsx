@@ -15,10 +15,11 @@ interface ModalProps {
 }
 
 const ExportTreeModal: React.FC<ModalProps> = ({ show, toggle }) => {
-  const skillTreeManager = useContext(SkillTreeContext)
+  const treeRenderer = useContext(SkillTreeContext)
 
   const onClickRaw = async (): Promise<void> => {
-    const result = skillTreeManager.exportTree()
+    if (!treeRenderer) return
+    const result = treeRenderer.getSkillManager().exportTree()
     await navigator.clipboard.writeText(result)
     toast.custom(t => (
       <ToastContainer
@@ -30,6 +31,7 @@ const ExportTreeModal: React.FC<ModalProps> = ({ show, toggle }) => {
   }
 
   const onClickPastebin = React.useCallback(async (): Promise<void> => {
+    if (!treeRenderer) return
     if (!process.env.REACT_APP_PASTEBIN_API_KEY) {
       toast.custom(t => (
         <ToastContainer
@@ -40,14 +42,14 @@ const ExportTreeModal: React.FC<ModalProps> = ({ show, toggle }) => {
       ))
       return
     }
-    const result = skillTreeManager.exportTree()
+    const result = treeRenderer.getSkillManager().exportTree()
     const formData = new URLSearchParams()
     formData.append('api_dev_key', process.env.REACT_APP_PASTEBIN_API_KEY)
     formData.append('api_paste_code', result)
     formData.append('api_paste_private', '0')
     formData.append(
       'api_paste_name',
-      skillTreeManager.name ?? 'Untitled atlas tree'
+      treeRenderer.getSkillManager().name ?? 'Untitled atlas tree'
     )
     formData.append('api_paste_expire_date', 'N')
     const response = await axios.postForm(
@@ -56,7 +58,7 @@ const ExportTreeModal: React.FC<ModalProps> = ({ show, toggle }) => {
     )
 
     console.log(response.data)
-  }, [skillTreeManager])
+  }, [treeRenderer])
 
   return show
     ? createPortal(

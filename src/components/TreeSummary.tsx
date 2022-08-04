@@ -35,7 +35,7 @@ import p from '../../package.json'
 
 const TreeSummary: React.FC = () => {
   const [collapsed, setCollapsed] = React.useState<boolean>(false)
-  const skillTreeManager = React.useContext(SkillTreeContext)
+  const treeRenderer = React.useContext(SkillTreeContext)
   const [allocatedNodes, setAllocatedNodes] = React.useState<number[]>([])
   const [saveCallback, setSaveCallback] = React.useState<Function>()
   const [filterValue, setFilterValue] = React.useState<string>()
@@ -57,7 +57,7 @@ const TreeSummary: React.FC = () => {
 
     if (!allocated) return
     if (allocated.length === 1 && allocated[0] === 29045) return
-    const url = skillTreeManager.exportTree()
+    const url = treeRenderer?.getSkillManager().exportTree()
     navigate(`/tree/${url}`, { replace: true })
   })
   const forceUpdate = useForceUpdate()
@@ -75,10 +75,11 @@ const TreeSummary: React.FC = () => {
   }
 
   React.useEffect(() => {
-    if (allocatedNodes.length === 0) return
+    if (allocatedNodes.length === 0 || !treeRenderer) return
     const allocatedNodeInfo = []
     const globalModifiersToApply: string[] = []
-    for (const nodeInfo of skillTreeManager
+    for (const nodeInfo of treeRenderer
+      .getSkillManager()
       .filterNodes(x => allocatedNodes.includes(x.skill))
       .map(x => ({
         ...x,
@@ -163,23 +164,24 @@ const TreeSummary: React.FC = () => {
       }
     }
     setLeagueGroupedModifiers(updatedModsGroups)
-  }, [allocatedNodes, skillTreeManager])
+  }, [allocatedNodes, treeRenderer])
 
   const onHandleSave = () => {
-    if (!skillTreeManager.name) {
+    if (!treeRenderer?.getSkillManager().name) {
       toggleSaveModal()
     } else {
-      skillTreeManager.saveCurrentTree()
+      treeRenderer?.getSkillManager().saveCurrentTree()
     }
     forceUpdate()
   }
 
   const onHandleReset = (): void => {
+    if (!treeRenderer) return
     setAllocatedNodes([])
     setLeagueGroupedModifiers({})
-    skillTreeManager.name = undefined
-    skillTreeManager.path = []
-    skillTreeManager.initialAllocated = []
+    treeRenderer.getSkillManager().name = undefined
+    treeRenderer.getSkillManager().path = []
+    treeRenderer.getSkillManager().initialAllocated = []
     forceUpdate()
     setSaveCallback(undefined)
     emitEvent('reset-tree')
@@ -197,7 +199,7 @@ const TreeSummary: React.FC = () => {
 
   const onClickSummary = (): void => setCollapsed(!collapsed)
   const onClickNew = () => {
-    if (!skillTreeManager.isDirty()) {
+    if (!treeRenderer?.getSkillManager().isDirty()) {
       onHandleReset()
       return
     }
@@ -208,8 +210,8 @@ const TreeSummary: React.FC = () => {
   }
 
   const handleSaveProject = (callback: Function) => {
-    if (skillTreeManager.name) {
-      skillTreeManager.saveCurrentTree()
+    if (treeRenderer?.getSkillManager().name) {
+      treeRenderer?.getSkillManager().saveCurrentTree()
       callback()
       return
     }
@@ -234,20 +236,22 @@ const TreeSummary: React.FC = () => {
   // )
 
   React.useEffect(() => {
-    if (skillTreeManager.isDirty()) {
+    if (!treeRenderer) return
+    if (treeRenderer.getSkillManager().isDirty()) {
       if (!document.title.startsWith('•'))
         document.title = `• ${document.title}`
     } else {
       if (document.title.startsWith('•'))
         document.title = document.title.slice(2)
     }
-  }, [skillTreeManager, skillTreeManager.isDirty()])
+  }, [treeRenderer])
 
   React.useEffect(() => {
+    if (!treeRenderer) return
     document.title = `${
-      skillTreeManager.name ?? 'Untitled Tree'
+      treeRenderer.getSkillManager().name ?? 'Untitled Tree'
     } - POE Atlas Builder`
-  }, [skillTreeManager.name])
+  }, [treeRenderer])
 
   const filterLeagues = React.useCallback(
     ([, modifiers]: [string, Modifiers]): boolean => {
@@ -261,7 +265,17 @@ const TreeSummary: React.FC = () => {
   )
 
   const onClickExport = async (): Promise<void> => {
-    const result = skillTreeManager.exportTree()
+    const result = treeRenderer?.getSkillManager().exportTree()
+    if (!result) {
+      toast.custom(t => (
+        <ToastContainer
+          t={t}
+          variant='error'
+          message={'An error has occured while exporting your tree.'}
+        />
+      ))
+      return
+    }
     await navigator.clipboard.writeText(result)
     toast.custom(t => (
       <ToastContainer
@@ -306,11 +320,12 @@ const TreeSummary: React.FC = () => {
               Current Build
             </span>
             <div className='flex items-center justify-center'>
-              {(!skillTreeManager.name || skillTreeManager.isDirty()) && (
+              {(!treeRenderer?.getSkillManager().name ||
+                treeRenderer?.getSkillManager().isDirty()) && (
                 <i className='mr-1 h-2 w-2 rounded-full bg-red-600' />
               )}
               <h1 className='text-2xl font-semibold text-orange-400'>
-                {skillTreeManager.name ?? (
+                {treeRenderer?.getSkillManager().name ?? (
                   <span className='italic'>Untitled tree</span>
                 )}
               </h1>

@@ -15,7 +15,7 @@ interface ModalProps {
 const LoadTreeModal: React.FC<ModalProps> = ({ show, toggle, callback }) => {
   const [treeName, setTreeName] = React.useState<string>('')
   const [currentPath, setCurrentPath] = React.useState<string[]>([])
-  const skillTreeManager = React.useContext(SkillTreeContext)
+  const treeRenderer = React.useContext(SkillTreeContext)
 
   const savedBuilds = React.useMemo<SkillTreeDirectory>(() => {
     let savesStr = localStorage.getItem('saved-trees')
@@ -33,11 +33,12 @@ const LoadTreeModal: React.FC<ModalProps> = ({ show, toggle, callback }) => {
   }
 
   const onClickLoad = () => {
+    if (!treeRenderer) return
     const tree = getFromPath<number[]>(savedBuilds, [...currentPath, treeName])
     emitEvent('import-tree', tree)
-    skillTreeManager.name = treeName
-    skillTreeManager.path = currentPath
-    skillTreeManager.initialAllocated = tree
+    treeRenderer.getSkillManager().name = treeName
+    treeRenderer.getSkillManager().path = currentPath
+    treeRenderer.getSkillManager().initialAllocated = tree
     toggle()
   }
 

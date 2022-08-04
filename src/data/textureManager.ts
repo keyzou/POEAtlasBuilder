@@ -1,4 +1,6 @@
-import { Texture } from '@pixi/core'
+import { Application } from '@pixi/app'
+import { Resource, Texture } from '@pixi/core'
+import { Assets } from '@pixi/assets'
 import passiveBg from 'assets/AtlasPassiveBackground.png'
 import atlasStart from 'assets/AtlasPassiveSkillScreenStart.png'
 import masteriesAtlas from 'assets/icons/atlases/atlas-groups-3.png'
@@ -24,12 +26,13 @@ import tooltipHeaderEndNotable from 'assets/tooltip-header-end-notable.png'
 import tooltipHeaderEnd from 'assets/tooltip-header-end.png'
 import tooltipHeaderStartNotable from 'assets/tooltip-header-start-notable.png'
 import tooltipHeaderStart from 'assets/tooltip-header-start.png'
-import tooltipHeaderPatternNotable from 'assets/tooltip-pattern-notable.png'
+import tooltipHeaderPatternNotable from 'assets/tooltip-pattern-notable.jpg'
 import tooltipHeaderPattern from 'assets/tooltip-pattern.png'
 import { useMemo } from 'react'
 
 export default class TextureManager {
   private static instance: TextureManager
+  private _app: Application
 
   public static getInstance(): TextureManager {
     /* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */
@@ -41,9 +44,11 @@ export default class TextureManager {
 
   public ready: boolean = false
 
-  private textures: Record<string, Texture> = {}
+  private _texturePromises: Promise<any>[]
 
-  public initialize(): void {
+  public async initialize(app: Application): Promise<void> {
+    this._app = app
+    this._texturePromises = []
     // ====== Textures registration
     this.registerTexture('skill-frame-unallocated', skillFrameUnallocated)
     this.registerTexture('skill-frame-highlighted', skillFrameHighlighted)
@@ -87,19 +92,20 @@ export default class TextureManager {
       tooltipHeaderPatternNotable
     )
 
+    console.log(passiveBg, tooltipHeaderPattern)
+
+    await Promise.all(this._texturePromises)
+
     this.ready = true
   }
 
   private registerTexture(name: string, path: string): void {
-    const texture = Texture.from(path)
-    this.textures[name] = texture
+    Assets.add(name, path)
+    this._texturePromises.push(Assets.load<Texture>(name))
   }
 
-  public getTexture(name: string): Texture {
-    if (!(name in this.textures)) {
-      throw new Error(`Texture ${name} not found`)
-    }
-    return this.textures[name]
+  public getTexture(name: string): Texture<Resource> {
+    return Assets.get(name) as Texture<Resource>
   }
 }
 

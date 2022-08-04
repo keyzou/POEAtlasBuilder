@@ -52,6 +52,8 @@ export function getNodeFrameInfo(
   }
 }
 
+export const ATLAS_HTML_SELECTOR = '#atlas'
+
 export const leagueToIconsLookup = {
   Abyss: [
     'AbyssNode1',

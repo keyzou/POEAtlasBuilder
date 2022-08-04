@@ -14,7 +14,7 @@ interface ModalProps {
 const SaveTreeModal: React.FC<ModalProps> = ({ show, toggle, callback }) => {
   const [currentPath, setCurrentPath] = React.useState<string[]>([])
   const [treeName, setTreeName] = React.useState<string>('')
-  const skillTreeManager = React.useContext(SkillTreeContext)
+  const treeRenderer = React.useContext(SkillTreeContext)
 
   const savedBuilds = React.useMemo<SkillTreeDirectory>(() => {
     let savesStr = localStorage.getItem('saved-trees')
@@ -33,18 +33,19 @@ const SaveTreeModal: React.FC<ModalProps> = ({ show, toggle, callback }) => {
 
   const handleSubmit = React.useCallback(
     (event: React.FormEvent) => {
+      if (!treeRenderer) return
       event.preventDefault()
       event.stopPropagation()
-      skillTreeManager.name = treeName
-      skillTreeManager.path = currentPath
-      skillTreeManager.saveCurrentTree()
+      treeRenderer.getSkillManager().name = treeName
+      treeRenderer.getSkillManager().path = currentPath
+      treeRenderer.getSkillManager().saveCurrentTree()
 
       toggle()
       if (callback) {
         callback()
       }
     },
-    [callback, currentPath, skillTreeManager, treeName, toggle]
+    [callback, currentPath, treeRenderer, treeName, toggle]
   )
 
   return show
