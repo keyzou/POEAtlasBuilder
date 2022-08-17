@@ -69,10 +69,10 @@ body {
 
 .league {
   background-image: url('./assets/icons/atlases/atlas-mastery-active-3.png');
-  background-size: 18rem;
+  background-size: 12rem;
   background-position: 0 0;
-  width: 3rem;
-  height: 3rem;
+  width: 2rem;
+  height: 2rem;
 }
 
 .league--abyss {
@@ -80,141 +80,141 @@ body {
 }
 
 .league--incursion {
-  background-position: -3rem 0;
+  background-position: -2rem 0;
 }
 
 .league--anarchy {
-  background-position: -6rem 0;
+  background-position: -4rem 0;
 }
 
 .league--bestiary {
-  background-position: -9rem 0;
+  background-position: -6rem 0;
 }
 
 .league--beyond {
-  background-position: -12rem 0;
+  background-position: -8rem 0;
 }
 
 .league--blight {
-  background-position: -15rem 0;
+  background-position: -10rem 0;
 }
 
 .league--map-bosses {
-  background-position: 0 -3rem;
+  background-position: 0 -2rem;
 }
 
 .league--breach {
-  background-position: -3rem -3rem;
+  background-position: -2rem -2rem;
 }
 
 .league--the-searing-exarch {
-  background-position: -6rem -3rem;
+  background-position: -4rem -2rem;
 }
 
 .league--conqueror {
-  background-position: -9rem -3rem;
+  background-position: -6rem -2rem;
 }
 
 .league--delirium {
-  background-position: -12rem -3rem;
+  background-position: -8rem -2rem;
 }
 
 .league--delve {
-  background-position: -15rem -3rem;
+  background-position: -10rem -2rem;
 }
 
 .league--domination {
-  background-position: 0 -6rem;
+  background-position: 0 -4rem;
 }
 
 .league--elder-shaper {
-  background-position: -3rem -6rem;
+  background-position: -2rem -4rem;
 }
 
 .league--essence {
-  background-position: -6rem -6rem;
+  background-position: -4rem -4rem;
 }
 
 .league--expedition {
-  background-position: -9rem -6rem;
+  background-position: -6rem -4rem;
 }
 
 .league--harbinger {
-  background-position: -12rem -6rem;
+  background-position: -8rem -4rem;
 }
 
 .league--harvest {
-  background-position: -15rem -6rem;
+  background-position: -10rem -4rem;
 }
 
 .league--heist {
-  background-position: 0 -9rem;
+  background-position: 0 -6rem;
 }
 
 .league--betrayal {
-  background-position: -3rem -9rem;
+  background-position: -2rem -6rem;
 }
 
 .league--kirac {
-  background-position: -6rem -9rem;
+  background-position: -4rem -6rem;
 }
 
 .league--ascendancy {
-  background-position: -9rem -9rem;
+  background-position: -6rem -6rem;
 }
 
 .league--legion {
-  background-position: -12rem -9rem;
+  background-position: -8rem -6rem;
 }
 
 .league--maps {
-  background-position: -15rem -9rem;
+  background-position: -10rem -6rem;
 }
 
 .league--metamorph {
-  background-position: 0 -12rem;
+  background-position: 0 -8rem;
 }
 
 .league--rare {
-  background-position: -3rem -12rem;
+  background-position: -2rem -8rem;
 }
 
 .league--ritual {
-  background-position: -6rem -12rem;
+  background-position: -4rem -8rem;
 }
 
 .league--scarabs {
-  background-position: -9rem -12rem;
+  background-position: -6rem -8rem;
 }
 
 .league--sextants {
-  background-position: -12rem -12rem;
+  background-position: -8rem -8rem;
 }
 
 .league--ambush {
-  background-position: -15rem -12rem;
+  background-position: -10rem -8rem;
 }
 
 .league--synthesis {
-  background-position: 0 -15rem;
+  background-position: 0 -10rem;
 }
 
 .league--the-eater-of-worlds {
-  background-position: -3rem -15rem;
+  background-position: -2rem -10rem;
 }
 
 .league--torment {
-  background-position: -6rem -15rem;
+  background-position: -4rem -10rem;
 }
 
 .league--unique {
-  background-position: -9rem -15rem;
+  background-position: -6rem -10rem;
 }
 
 .league--vaal {
-  background-position: -12rem -15rem;
+  background-position: -8rem -10rem;
 }
 
 .league--misc {
-  background-position: -15rem -15rem;
+  background-position: -10rem -10rem;
 }

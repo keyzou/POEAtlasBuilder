@@ -302,15 +302,11 @@ const TreeSummary: React.FC = () => {
         onDiscardCallback={onHandleReset}
         onSaveCallback={handleSaveProject}
       />
-      <div
-        className={`absolute top-0 z-20 h-full w-[32rem] transition-transform ease-in-out ${
-          collapsed ? '-translate-x-[32rem]' : ''
-        }`}
-      >
-        <div className='flex h-full w-[32rem] shrink flex-col bg-zinc-900 text-slate-400'>
+      <div className={`h-screen w-[24rem] transition-transform ease-in-out`}>
+        <div className='flex h-full w-[24rem] shrink flex-col bg-zinc-900 text-slate-400'>
           <div className='flex items-center justify-center pt-3'>
-            <img src={logo} className='w-10' alt='POE Atlas Builder' />
-            <h1 className='font-serif ml-3 text-xl font-bold text-zinc-200'>
+            <img src={logo} className='w-8' alt='POE Atlas Builder' />
+            <h1 className='font-serif ml-3 text-lg font-bold text-zinc-200'>
               POE Atlas Builder
               <small className='ml-2 text-slate-500'>v{p.version}</small>
             </h1>
@@ -373,7 +369,7 @@ const TreeSummary: React.FC = () => {
               Import
             </button>
             <span className='flex items-center justify-center rounded py-1 text-xs font-bold text-zinc-500'>
-              Atlas version:{' '}
+              Atlas ver.{' '}
               <Badge className='ml-2 bg-slate-700 text-slate-100'>3.18.0</Badge>
             </span>
           </div>
@@ -412,7 +408,7 @@ const TreeSummary: React.FC = () => {
                             className='items-top mb-1 ml-4 flex text-sm'
                             key={moduleDesc}
                           >
-                            <FaChevronRight className='mt-1 mr-1 inline text-orange-400 text-opacity-70' />
+                            <FaChevronRight className='mt-1 mr-1 inline flex-none text-orange-400 text-opacity-70' />
                             <span>
                               {reactStringReplace(moduleDesc, '#', () => {
                                 return (
@@ -439,21 +435,6 @@ const TreeSummary: React.FC = () => {
             </ul>
           </div>
         </div>
-        <button
-          type='button'
-          className='absolute top-0 -right-36 flex h-10 w-36 shrink-0 items-center justify-center rounded-br-lg bg-zinc-900 text-orange-400 hover:text-orange-300'
-          onClick={onClickSummary}
-        >
-          <p className='text flex items-center text-center font-bold tracking-wider'>
-            {collapsed && (
-              <FaChevronCircleRight className='mr-2 text-orange-300' />
-            )}
-            {!collapsed && (
-              <FaChevronCircleLeft className='mr-2 text-orange-300' />
-            )}
-            SUMMARY
-          </p>
-        </button>
       </div>
     </>
   )

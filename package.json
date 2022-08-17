@@ -3,6 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "dependencies": {
+    "@headlessui/react": "^1.6.6",
     "@pixi/accessibility": "6.5.1",
     "@pixi/app": "6.5.1",
     "@pixi/assets": "^6.5.1",

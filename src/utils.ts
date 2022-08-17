@@ -24,6 +24,10 @@ export function useMediaQuery(query: string): boolean {
   return matches
 }
 
+export function classNames(...classes: any[]) {
+  return classes.filter(Boolean).join(' ')
+}
+
 /* eslint-disable no-bitwise */
 const stringToBytes = (input: string): number[] => {
   let result: number[] = []
@@ -131,7 +135,7 @@ export function useEventListener<T>(
 }
 
 export function emitEvent<T>(eventName: string, data?: T): void {
-  const event = new CustomEvent(eventName, { detail: data })
+  const event = new CustomEvent<T>(eventName, { detail: data })
   document.dispatchEvent(event)
 }
 
@@ -328,5 +332,5 @@ export const importTree = (encodedTree?: string) => {
     decodedNodes.push(node)
     cursor += 2
   }
-  emitEvent('import-tree', decodedNodes)
+  return decodedNodes
 }

@@ -41,7 +41,12 @@ import TreeNode, { NodeContainer } from 'models/nodes'
 import SkillAtlas from 'models/sprite'
 import PassiveTree from 'models/tree'
 import { Viewport } from 'pixi-viewport'
-import { findStartFromNode, stateToString } from 'utils'
+import {
+  addToHistory,
+  emitEvent,
+  findStartFromNode,
+  stateToString
+} from 'utils'
 import { Text } from '@pixi/text'
 import { Sprite } from '@pixi/sprite'
 import { Application } from '@pixi/app'
@@ -78,7 +83,6 @@ export class TreeRenderer {
     passiveTree: PassiveTree
   ) {
     // Install application plugins
-    document.addEventListener('resize', () => this.resizeCanvas())
 
     this._textureManager = TextureManager.getInstance()
 
@@ -91,7 +95,7 @@ export class TreeRenderer {
   }
 
   public resizeCanvas = () => {
-    this._app.resize()
+    this._viewport.resize(this._element.clientWidth, this._element.clientHeight)
     this.setDirty()
   }
 
@@ -116,7 +120,7 @@ export class TreeRenderer {
       width: element.clientWidth,
       height: element.clientHeight,
       backgroundColor: 0x08_0d_12,
-      resizeTo: window
+      resizeTo: element
     })
 
     this._element.innerHTML = ''
@@ -132,7 +136,7 @@ export class TreeRenderer {
 
     this._cull = new Simple()
     this._viewport.clampZoom({ minScale: 0.1, maxScale: 0.5 })
-    this._viewport.setZoom(0.25, true)
+    this._viewport.setZoom(0.1, true)
     this._viewport.wheel({ smooth: 5 }).drag()
 
     const backgroundLayer = new Group(-1, false)
@@ -169,10 +173,7 @@ export class TreeRenderer {
     backgroundSprite.height = ySize
     backgroundSprite.position.set(atlasSize.min_x - 1000, atlasSize.min_y - 200)
     this._viewport.addChild(backgroundSprite)
-    this._viewport.moveCenter(
-      (atlasSize.min_x + atlasSize.max_x) / 2,
-      (atlasSize.min_y + atlasSize.max_y) / 6
-    )
+    this._viewport.moveCenter(1800, -3500)
 
     this.addGroupsToViewport(groupsLayer)
     this.addConnectorsToViewport(connectorsLayer)
@@ -239,7 +240,6 @@ export class TreeRenderer {
     this._stats.dom.style.right = '20px'
     let _lastTick = Date.now()
     const loop = () => {
-      this._stats.begin()
       const newTime = Date.now()
       let deltaTime = newTime - _lastTick
       _lastTick = newTime
@@ -250,49 +250,50 @@ export class TreeRenderer {
         deltaTime = 1000
       }
 
-      for (const node of this._skillTreeManager.toArray()) {
-        if (!node.spriteContainer) continue
-        if (node.isMastery) {
-          const [skill] = node.spriteContainer.children
-          const skillSprite = skill as Sprite
-          const oldTexture = skillSprite.texture
-          skillSprite.texture =
-            node.state === State.ACTIVE
-              ? this._textureManager.getTexture('masteries-active')
-              : this._textureManager.getTexture('masteries')
-          if (oldTexture !== skillSprite.texture) this.setDirty()
-        } else {
-          const [skill, frame] = node.spriteContainer.children
-          const skillSprite = skill as Sprite
-          const frameSprite = frame as Sprite
-          const oldSkillTexture = skillSprite.texture
-          const oldFrameTexture = frameSprite.texture
-          frameSprite.texture = this.getNodeFrameTexture(node)
-          skillSprite.texture =
-            node.state === State.ACTIVE
-              ? this._textureManager.getTexture('skills-active')
-              : this._textureManager.getTexture('skills')
-          if (oldSkillTexture !== skillSprite.texture) this.setDirty()
-          if (oldFrameTexture !== frameSprite.texture) this.setDirty()
-        }
-      }
+      // for (const node of this._skillTreeManager.toArray()) {
+      //   if (!node.spriteContainer) continue
+      //   if (node.isMastery) {
+      //     const [skill] = node.spriteContainer.children
+      //     const skillSprite = skill as Sprite
+      //     const oldTexture = skillSprite.texture
+      //     skillSprite.texture =
+      //       node.state === State.ACTIVE
+      //         ? this._textureManager.getTexture('masteries-active')
+      //         : this._textureManager.getTexture('masteries')
+      //     if (oldTexture !== skillSprite.texture) this.setDirty()
+      //   } else {
+      //     const [skill, frame] = node.spriteContainer.children
+      //     const skillSprite = skill as Sprite
+      //     const frameSprite = frame as Sprite
+      //     const oldSkillTexture = skillSprite.texture
+      //     const oldFrameTexture = frameSprite.texture
+      //     frameSprite.texture = this.getNodeFrameTexture(node)
+      //     skillSprite.texture =
+      //       node.state === State.ACTIVE
+      //         ? this._textureManager.getTexture('skills-active')
+      //         : this._textureManager.getTexture('skills')
+      //     if (oldSkillTexture !== skillSprite.texture) this.setDirty()
+      //     if (oldFrameTexture !== frameSprite.texture) this.setDirty()
+      //   }
+      // }
 
       this._viewport.update(deltaTime)
-      this._viewport.updateTransform()
       if (this._dirty || this._viewport.dirty) {
         this._cull.cull(this._viewport.getVisibleBounds())
         this._app.render()
         this._dirty = this._viewport.dirty = false
       }
-      this._stats.end()
       requestAnimationFrame(loop)
     }
     requestAnimationFrame(loop)
     this.resizeCanvas()
-    console.log(this._dirty, this._viewport.dirty)
   }
 
   private addNodesToViewport(group: Group): void {
+    let minX = Number.POSITIVE_INFINITY,
+      minY = Number.POSITIVE_INFINITY
+    let maxX = Number.NEGATIVE_INFINITY,
+      maxY = Number.NEGATIVE_INFINITY
     for (const node of this._skillTreeManager.toArray()) {
       if (node.hidden) continue
       if (node.isMastery) {
@@ -345,6 +346,10 @@ export class TreeRenderer {
         this._viewport.addChild(container)
         continue
       }
+      if (node.extra.posX < minX) minX = node.extra.posX
+      if (node.extra.posX > maxX) maxX = node.extra.posX
+      if (node.extra.posY < minY) minY = node.extra.posY
+      if (node.extra.posY > maxY) maxY = node.extra.posY
       const container = new Container()
       container.x = node.extra.posX
       container.y = node.extra.posY
@@ -388,8 +393,8 @@ export class TreeRenderer {
         // Todo handle hovers better
         if (n.skill in this._tooltips) {
           this._tooltips[n.skill].visible = true
+          this.setDirty()
         }
-        this.setDirty()
         if (n.allocated) return
         n.state = State.INTERMEDIATE
         sprite.texture = this.getNodeFrameTexture(n)
@@ -418,12 +423,11 @@ export class TreeRenderer {
       })
 
       sprite.on('mouseout', () => {
-        console.log('out')
         const n = this._skillTreeManager.getNode(node.skill)
         if (n.skill in this._tooltips) {
           this._tooltips[n.skill].visible = false
+          this.setDirty()
         }
-        this.setDirty()
         if (n.allocated) return
         n.state = n.path.length === 1 ? State.INTERMEDIATE : State.DEFAULT
         sprite.texture = this.getNodeFrameTexture(n)
@@ -440,9 +444,6 @@ export class TreeRenderer {
             : from.state === State.ACTIVE
             ? State.INTERMEDIATE
             : State.DEFAULT
-          console.log(
-            `{${from.skill}: ${from.state}} => {${to.skill}: ${to.state}}`
-          )
           if (to.spriteContainer)
             (to.spriteContainer.children[1] as Sprite).texture =
               this.getNodeFrameTexture(to)
@@ -472,7 +473,8 @@ export class TreeRenderer {
           for (const x of toUnallocate) this.unallocateNode(x)
         }
         const allocatedSnapshot = this._skillTreeManager.getAllocatedSkills()
-        // pushToHistory(allocatedSnapshot)
+        addToHistory(allocatedSnapshot)
+        emitEvent('allocated-changed', allocatedSnapshot)
         this.buildAllNodesPaths()
         this.setDirty()
       })
@@ -481,6 +483,10 @@ export class TreeRenderer {
       container.parentGroup = group
       this._viewport.addChild(container)
     }
+
+    console.log(minX, maxX, minY, maxY)
+    console.log((maxX + minX) / 2)
+    console.log((maxY + minY) / 2)
     this.setDirty()
   }
 
@@ -549,6 +555,8 @@ export class TreeRenderer {
       if (!connector.sprite) continue
       this.redrawConnector(connector)
     }
+
+    emitEvent('allocate-changed')
     this.setDirty()
   }
 

@@ -1,4 +1,5 @@
 import { TreeRenderer } from 'atlas'
+import Dropdown from 'components/Dropdown'
 import TreeSummary from 'components/TreeSummary'
 import SkillTreeManager from 'data/skillTreeManager'
 import tree from 'data/tree.json'
@@ -8,6 +9,7 @@ import { State } from 'models/misc'
 import type { NodeContainer } from 'models/nodes'
 import type PassiveTree from 'models/tree'
 import React, { lazy } from 'react'
+import { importTree } from 'utils'
 import { orbitAngles, orbitRadii } from '../constants'
 
 export const SkillTreeContext = React.createContext<TreeRenderer | undefined>(
@@ -111,8 +113,30 @@ const AtlasSkillTree: React.FC = () => {
     setTreeRenderer(renderer)
     renderer.setup(treeContainer.current).then(() => {
       setAppReady(true)
+      window.addEventListener('resize', renderer.resizeCanvas)
     })
+
+    return () => {
+      window.removeEventListener('resize', renderer.resizeCanvas)
+    }
   }, [])
+
+  const dropdownActions = React.useMemo(() => {
+    if (!treeRenderer) return []
+    return [
+      [
+        {
+          name: '15 points',
+          onClick: () => {
+            const skills = importTree(
+              'AAAABgAADQMUMiRf62zUhcSRfbH7x7PS9N9e6Nrx3vdPAAA='
+            )
+            treeRenderer.getSkillManager().setAllocatedSkills(skills)
+          }
+        }
+      ]
+    ]
+  }, [treeRenderer])
 
   React.useEffect(() => {
     if (!isAppReady || !treeRenderer) return
@@ -122,8 +146,15 @@ const AtlasSkillTree: React.FC = () => {
 
   return (
     <SkillTreeContext.Provider value={treeRenderer}>
-      <TreeSummary />
-      <div ref={treeContainer} id='tree-container' />
+      <div className='flex items-stretch'>
+        <TreeSummary />
+        <div className='flex h-screen flex-1 flex-col items-stretch'>
+          <div className='flex-1' ref={treeContainer} id='tree-container' />
+          <div className='flex h-8 flex-none items-stretch bg-zinc-900'>
+            <Dropdown />
+          </div>
+        </div>
+      </div>
     </SkillTreeContext.Provider>
   )
 }
